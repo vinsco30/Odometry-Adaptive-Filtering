@@ -49,6 +49,9 @@ az_ref = cellfun(@(m) double(m.ControlAcceleration.Z), msgRef1);
 eig_x = cellfun(@(m) double(m.Data(7,1)), msgM);
 eig_y = cellfun(@(m) double(m.Data(8,1)), msgM);
 eig_z = cellfun(@(m) double(m.Data(9,1)), msgM);
+eig_velx = cellfun(@(m) double(m.Data(10,1)), msgM);
+eig_vely = cellfun(@(m) double(m.Data(11,1)), msgM);
+eig_velz = cellfun(@(m) double(m.Data(12,1)), msgM);
 n_points = cellfun(@(m) double(m.Data), msgM2);
 trace = cellfun(@(m) double(m.Data), msgM3);
 
@@ -127,6 +130,9 @@ fff = double(den2);
 eig_x_def = resample(eig_x,lll,fff);
 eig_y_def = resample(eig_y,lll,fff);
 eig_z_def = resample(eig_z,lll,fff);
+eig_velx_def = resample(eig_velx,lll,fff);
+eig_vely_def = resample(eig_vely,lll,fff);
+eig_velz_def = resample(eig_velz,lll,fff);
 trace_def = resample(trace,lll,fff);
 n_points_def = resample(n_points,lll,fff);
 
@@ -264,23 +270,23 @@ ylabel('${v_z}$ $[m/s]$','fontsize',18, 'interpreter','latex')
 % legend('$vz_{ref}$','interpreter','latex','Location','northeastoutside')
 % xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
 % ylabel('${v_z}$ $[m/s]$','fontsize',18, 'interpreter','latex')
-figure('Renderer', 'painters', 'Position', [10 10 900 600])
-subplot(3,1,1)
-plot(t1,ax_ref_def((1:end),1),'Color','[0.07,0.62,1.00]',LineWidth=2)
-set(gca,'fontsize',16)
-legend('$ax_{ref}$','interpreter','latex','Location','northeastoutside')
-ylabel('${a_x}$ $[m/s^2]$','fontsize',18, 'interpreter','latex')
-subplot(3,1,2)
-plot(t1, ay_ref_def((1:end),1),'Color','[1.00,0.41,0.16]',LineWidth=2)
-set(gca,'fontsize',16)
-legend('$ay_{ref}$','interpreter','latex','Location','northeastoutside')
-ylabel('${a_y}$ $[m/s^2]$','fontsize',18, 'interpreter','latex')
-subplot(3,1,3)
-plot(t1,az_ref_def((1:end),1),'Color','[1.00,0.00,1.00]',LineWidth=2)
-set(gca,'fontsize',16)
-legend('$az_{ref}$','interpreter','latex','Location','northeastoutside')
-xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
-ylabel('${a_z}$ $[m/s^2]$','fontsize',18, 'interpreter','latex')
+% figure('Renderer', 'painters', 'Position', [10 10 900 600])
+% subplot(3,1,1)
+% plot(t1,ax_ref_def((1:end),1),'Color','[0.07,0.62,1.00]',LineWidth=2)
+% set(gca,'fontsize',16)
+% legend('$ax_{ref}$','interpreter','latex','Location','northeastoutside')
+% ylabel('${a_x}$ $[m/s^2]$','fontsize',18, 'interpreter','latex')
+% subplot(3,1,2)
+% plot(t1, ay_ref_def((1:end),1),'Color','[1.00,0.41,0.16]',LineWidth=2)
+% set(gca,'fontsize',16)
+% legend('$ay_{ref}$','interpreter','latex','Location','northeastoutside')
+% ylabel('${a_y}$ $[m/s^2]$','fontsize',18, 'interpreter','latex')
+% subplot(3,1,3)
+% plot(t1,az_ref_def((1:end),1),'Color','[1.00,0.00,1.00]',LineWidth=2)
+% set(gca,'fontsize',16)
+% legend('$az_{ref}$','interpreter','latex','Location','northeastoutside')
+% xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
+% ylabel('${a_z}$ $[m/s^2]$','fontsize',18, 'interpreter','latex')
 % 
 %Plot metrics
 figure('Renderer', 'painters', 'Position', [10 10 900 600])
@@ -303,6 +309,25 @@ set(gca,'fontsize',16)
 legend('$tr(P)$','interpreter','latex','Location','northeastoutside')
 ylabel('${trace}$','fontsize',18, 'interpreter','latex')
 
+% figure('Renderer', 'painters', 'Position', [10 10 900 600])
+% subplot(3,1,1)
+% plot(t1,eig_velx_def((1:end),1),'Color','[0.07,0.62,1.00]',LineWidth=2)
+% % hold on
+% % plot(t1,eig_y_def((1:end),1),'Color','[1.00,0.41,0.16]',LineWidth=2)
+% % plot(t1,eig_z_def((1:end),1),'Color','[1.00,0.00,1.00]',LineWidth=2)
+% set(gca,'fontsize',16)
+% legend('$eig_{odom}$','interpreter','latex','Location','northeastoutside')
+% ylabel('${eig_{x,y,z}}$','fontsize',18, 'interpreter','latex')
+% subplot(3,1,2)
+% plot(t1,eig_vely_def((1:end),1),'Color','[1.00,0.41,0.16]',LineWidth=2)
+% set(gca,'fontsize',16)
+% legend('$points$','interpreter','latex','Location','northeastoutside')
+% ylabel('${points}$','fontsize',18, 'interpreter','latex')
+% subplot(3,1,3)
+% plot(t1,eig_velz_def((1:end),1),'Color','[1.00,0.00,1.00]',LineWidth=2)
+% set(gca,'fontsize',16)
+% legend('$tr(P)$','interpreter','latex','Location','northeastoutside')
+% ylabel('${trace}$','fontsize',18, 'interpreter','latex')
 % figure('Renderer', 'painters', 'Position', [10 10 900 600])
 % plot(t1,d_eigx((1:end),1),'Color','[0.07,0.62,1.00]',LineWidth=2)
 % set(gca,'fontsize',16)

@@ -192,15 +192,15 @@ k_trace = avg_trace;
 meas_x_ok = true;
 meas_y_ok = true;
 meas_z_ok = true;
-q_vis_meas_lx_ok = 1;
-q_vis_meas_ly_ok = 1;
-q_vis_meas_lz_ok = 1;
-r_lx_bad = 1;
-r_ly_bad = 1;
-r_lz_bad = 1;
-q_lx_meas_bad = 1;
-q_ly_meas_bad = 1;
-q_lz_meas_bad = 1;
+q_vis_meas_lx_ok = 1e4;
+q_vis_meas_ly_ok = 1e6;
+q_vis_meas_lz_ok = 1e6;
+r_lx_bad = 1e3;
+r_ly_bad = 1e5;
+r_lz_bad = 1e5;
+q_lx_meas_bad = 1e6;
+q_ly_meas_bad = 1e8;
+q_lz_meas_bad = 1e8;
 
 err = zeros(3,t);
 
@@ -244,22 +244,22 @@ for i=2:size(u,2)
 
     %Update
     if ~meas_x_ok
-        r_l_new = [r_l(1)*r_lx_bad, r_l(1,2:3), r_l(4)*r_lx_bad, r_l(5:6)];
-        qdl_new = [qd(1,1)*q_lx_meas_bad, qd(1,2:3), qd(1,4)*q_lx_meas_bad, ...
+        r_l_new = [r_l(1)*r_lx_bad, r_l(1,2:3), r_l(4)*r_lx_bad*0.01, r_l(5:6)];
+        qdl_new = [qd(1,1)*q_lx_meas_bad, qd(1,2:3), qd(1,4)*q_lx_meas_bad*0.01, ...
             qd(1,5:end)];
         R_L = r_l_new.*eye(6);
         Q(:,:,i) = [qr.*eye(9), zeros(9,12); zeros(12,9), qdl_new.*eye(12)];
     end
     if ~meas_y_ok
         r_l_new = [r_l(1), r_l(2)*r_ly_bad, r_l(1,3), ...
-            r_l(4), r_l(5)*r_ly_bad, r_l(6)];
+            r_l(4), r_l(5)*r_ly_bad*0.01, r_l(6)];
         qdl_new = [qd(1,1), qd(1,2)*q_ly_meas_bad, qd(1,3), qd(1,4), ...
-            qd(1,5)*q_ly_meas_bad, qd(1,6:end)];
+            qd(1,5)*q_ly_meas_bad*0.01, qd(1,6:end)];
         R_L = r_l_new.*eye(6);
         Q(:,:,i) = [qr.*eye(9), zeros(9,12); zeros(12,9), qdl_new.*eye(12)];
     end
     if ~meas_z_ok
-        r_l_new = [r_l(1,1:2), r_l(1,3)*r_lz_bad, r_l(1,4:5), r_l(6)*r_lz_bad];
+        r_l_new = [r_l(1,1:2), r_l(1,3)*r_lz_bad, r_l(1,4:5), r_l(6)*r_lz_bad*0.01];
         qdl_new = [qd(1,1:2), qd(1,3)*q_lz_meas_bad, qd(1,4:5), ...
             qd(1,6)*q_lz_meas_bad, qd(1,7:end)];
         R_L = r_l_new.*eye(6);
