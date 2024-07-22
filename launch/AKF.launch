@@ -1,0 +1,7 @@
+<launch>
+
+    <rosparam command="load" file="$(find AKF_pkg)/config/AKF.yaml" />
+
+	<node pkg="AKF_pkg" type="akf_ros" name="akf_ros" output="screen"/>
+
+</launch>

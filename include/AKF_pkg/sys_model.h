@@ -43,13 +43,50 @@ namespace sys_model{
         int n_vstates = 6;
         Matrix<double, 6, 21> Hl = Matrix<double, 6, 21>::Zero();
 
-        Hl.block<3,3>(0,0) = Matrix<double, 3, 3>::Identity();
-        Hl.block<3,3>(9,0) = -1*Matrix<double, 3, 3>::Identity();
+        // Hl.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
+        // Hl.block<6,6>(9,0) = -1*Matrix<double, 6, 6>::Identity();
 
-        Hl.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
-        Hl.block<3,3>(12,3) = -1*Matrix<double, 3, 3>::Identity();
+        // Hl.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
+        // Hl.block<3,3>(12,3) = 1*Matrix<double, 3, 3>::Identity();
+        Hl << 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
+                0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0;
 
         return Hl;
+    }
+
+        inline MatrixXd build_Hv() {
+        int n_states = 21;
+        int n_vstates = 6;
+        Matrix<double, 6, 21> Hv = Matrix<double, 6, 21>::Zero();
+
+        // Hv.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
+        // Hv.block<3,3>(9,0) = -1*Matrix<double, 3, 3>::Identity();
+
+        // Hv.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
+        // Hv.block<3,3>(18,3) = 1*Matrix<double, 3, 3>::Identity();
+
+        Hv << 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0,
+                0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0,
+                0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0,
+                0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+                0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 
+                0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1;
+
+        return Hv;
+    }
+
+    inline MatrixXd build_Q() {
+        Matrix<double, 21, 21> Q = 0.1*Matrix<double, 21, 21>::Identity();
+        return Q;
+    }
+
+    inline MatrixXd build_R() {
+        Matrix<double, 6, 6> R = 0.1*Matrix<double, 6, 6>::Identity();
+        return R;
     }
 
 
