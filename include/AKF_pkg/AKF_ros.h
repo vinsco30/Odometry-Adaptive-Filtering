@@ -36,6 +36,7 @@ class AKF_ros {
         void AKF_creation( Eigen::MatrixXd& A, Eigen::MatrixXd& B, Eigen::MatrixXd& H_l, Eigen::MatrixXd& H_v,
         Eigen::MatrixXd& Q, Eigen::MatrixXd& R_l, Eigen::MatrixXd& R_v );
         void fusion_loop();
+        void fusion_loop_1d();
 
         void run();
     
@@ -68,6 +69,8 @@ class AKF_ros {
         Eigen::Matrix<double,6,1> _z_v;
 
         Eigen::Matrix<bool,3,1> _meas_l_ok;
+        Eigen::Matrix<bool,3,1> _q_change_ok;
+        Eigen::Matrix<bool,3,1> _rq_change_bad;
 
         Eigen::Vector3d _eig_xyz;
         int _points;
@@ -82,6 +85,7 @@ class AKF_ros {
         bool _new_ctrl_acc;
         bool _first_meas;
         bool _init_kf;
+        bool _takeoff_done;
 
         /*Parameters*/
         int _states;
@@ -98,5 +102,6 @@ class AKF_ros {
         std::vector<double> _q_v_meas_l_ok;
         std::vector<double> _r_l_bad;
         std::vector<double> _q_l_meas_bad;
+        bool _debug;
 
 };

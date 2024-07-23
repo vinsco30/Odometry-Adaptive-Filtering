@@ -23,6 +23,9 @@ AKF_ros::AKF_ros() {
     if( !_nh.getParam("lambda_z", _lambda_z) ) {
         _lambda_z = 160.0;
     }  
+    if( !_nh.getParam("debug", _debug) ) {
+        _debug = false;
+    } 
 
     _nh.getParam( "kx", _kx );
     _nh.getParam( "ky", _ky );
@@ -52,6 +55,8 @@ AKF_ros::AKF_ros() {
     _first_meas = true;
     _init_kf = false;
     _meas_l_ok << true, true, true;
+    // _q_change_ok << false, false, false;
+    _takeoff_done = false;
 
 }
 
@@ -69,22 +74,28 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         ROS_INFO("Take-Off completed. Kalman filter init.");
         _init_kf = true;
         _first_meas = false;
+        _takeoff_done=true;
 
     }
     /*Hysteresis*/
+    if( _takeoff_done ) {
     //x
-    std::cout<<_meas_l_ok[0]<<"\n";
-    if( !_meas_l_ok[0] && _eig_xyz[0] > _lambda_x+_epsilon[0] ) {
+    // std::cout<<_meas_l_ok[0]<<"\n";
+    if( !_meas_l_ok[0] && _eig_xyz[0] > _lambda_x+_epsilon[0]+10 ) {
         ROS_WARN("Meas x OK after");
         _meas_l_ok[0] = true;
+        _q_change_ok[0] = false;
+        _rq_change_bad[0] = false;
     }
-    else if( _meas_l_ok[0] && _eig_xyz[0] < _lambda_x ) {
+    else if( _meas_l_ok[0] && _eig_xyz[0] < _lambda_x+_epsilon[0]+5 ) {
         _meas_l_ok[0] = false;
         ROS_ERROR("Meas x BAD");
     }
     //y
     if( !_meas_l_ok[1] && _eig_xyz[1] > _lambda_y+_epsilon[1] ) {
         _meas_l_ok[1] = true;
+        _q_change_ok[1] = false;
+        _rq_change_bad[1] = false;
     }
     else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y ) {
         _meas_l_ok[1] = false;
@@ -92,9 +103,12 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     //z
     if( !_meas_l_ok[2] && _eig_xyz[2] > _lambda_z+_epsilon[2] ) {
         _meas_l_ok[2] = true;
+        _q_change_ok[2] = false;
+        _rq_change_bad[2] = false;
     }
     else if( _meas_l_ok[2] && _eig_xyz[2] < _lambda_z ) {
         _meas_l_ok[2] = false;
+    }
     }
 
     _lio_odom_msg_received = true;
@@ -207,27 +221,87 @@ void AKF_ros::fusion_loop() {
             ROS_INFO("Kalman filter's states initialized!");
 
         }
+        if ( _takeoff_done ) {
 
-        u = _cmd_acc;
-        //--Predict
-        x_p = A*x_u + B*u;
-        P_p = A*P_u*A.transpose() + _Dt*Q;
+            // u = _cmd_acc;
 
-        //--Correct
-        y = _z_l - H_L*x_p;
-        K = P_p * H_L.transpose() * (H_L * P_p * H_L.transpose() + R_L).inverse();
+            if( _meas_l_ok[0] && !_q_change_ok[0] ) {
+                Q(15,15) = Q(15,15)*_q_v_meas_l_ok[0];
+                Q(18,18) = Q(18,18)*_q_v_meas_l_ok[0];
+                _q_change_ok[0] = true;
+                ROS_WARN("Good x LIO meas. Update offset VIO");
+            }
+            if( _meas_l_ok[1] && !_q_change_ok[1]) {
+                Q(16,16) = Q(16,16)*_q_v_meas_l_ok[1];
+                Q(19,19) = Q(19,19)*_q_v_meas_l_ok[1];
+                _q_change_ok[1] = true;
+                ROS_WARN("Good y LIO meas. Update offset VIO");
+            }
+            if( _meas_l_ok[2] && !_q_change_ok[2]) {
+                Q(17,17) = Q(17,17)*_q_v_meas_l_ok[2];
+                Q(20,20) = Q(20,20)*_q_v_meas_l_ok[2];
+                _q_change_ok[2] = true;
+                ROS_WARN("Good z LIO meas. Update offset VIO");
+            }
+            //--Predict
+            x_p = A*x_u + B*_cmd_acc;
+            P_p = A*P_u*A.transpose() + _Dt*Q;
 
-        x_u = x_p + K*y;
-        P_u = (Eigen::Matrix<double,21,21>::Identity() - K * H_L) * P_p;
+            if( !_meas_l_ok[0] && !_rq_change_bad[0]){
+                R_L(0,0) = R_L(0,0)*_r_l_bad[0];
+                R_L(3,3) = R_L(3,3)*_r_l_bad[0];
+                Q(9,9) = Q(9,9)*_q_l_meas_bad[0];
+                Q(12,12) = Q(12,12)*_q_l_meas_bad[0];
+                // ROS_INFO("Entro qui, X");
+                _rq_change_bad[0] = true;
+            }
+            if( !_meas_l_ok[1] && !_rq_change_bad[1]){
+                R_L(1,1) = R_L(1,1)*_r_l_bad[1];
+                R_L(4,4) = R_L(4,4)*_r_l_bad[1];
+                Q(10,10) = Q(10,10)*_q_l_meas_bad[1];
+                Q(13,13) = Q(13,13)*_q_l_meas_bad[1];
+                _rq_change_bad[1] = true;
+                // ROS_INFO("Entro qui, Y");
+            }
+            if( !_meas_l_ok[2] && !_rq_change_bad[2] ){
+                R_L(2,2) = R_L(2,2)*_r_l_bad[2];
+                R_L(5,5) = R_L(5,5)*_r_l_bad[2];
+                Q(11,11) = Q(11,11)*_q_l_meas_bad[0];
+                Q(14,14) = Q(14,14)*_q_l_meas_bad[0];
+                _rq_change_bad[2] = true;
+                // ROS_INFO("Entro qui, Z");
+            }
 
-        odom_out_msg.pose.pose.position.x = x_u[0];
-        odom_out_msg.pose.pose.position.y = x_u[1];
-        odom_out_msg.pose.pose.position.z = x_u[2];
-        odom_out_msg.twist.twist.linear.x = x_u[3];
-        odom_out_msg.twist.twist.linear.y = x_u[4];
-        odom_out_msg.twist.twist.linear.z = x_u[5];
+            //--Correct
 
-        _robot_est.publish(odom_out_msg);
+            if( _lio_odom_msg_received /*&& _eig_received*/) {
+                _eig_received=false;
+                _lio_odom_msg_received=false;
+                y = _z_l - H_L*x_p;
+                K = P_p * H_L.transpose() * (H_L * P_p * H_L.transpose() + R_L).inverse();
+
+                x_u = x_p + K*y;
+                P_u = (Eigen::Matrix<double,21,21>::Identity() - K * H_L) * P_p;
+                
+            }
+            else if( _ii_odom_msg_received ) {
+                _ii_odom_msg_received = false;
+                y = _z_v - H_V*x_p;
+                K = P_p * H_V.transpose() * (H_V * P_p * H_V.transpose() + R_V).inverse();
+
+                x_u = x_p + K*y;
+                P_u = (Eigen::Matrix<double,21,21>::Identity() - K * H_V) * P_p;
+            }
+
+            odom_out_msg.pose.pose.position.x = x_u[0];
+            odom_out_msg.pose.pose.position.y = x_u[1];
+            odom_out_msg.pose.pose.position.z = x_u[2];
+            odom_out_msg.twist.twist.linear.x = x_u[3];
+            odom_out_msg.twist.twist.linear.y = x_u[4];
+            odom_out_msg.twist.twist.linear.z = x_u[5];
+
+            _robot_est.publish(odom_out_msg);
+        }
 
         
 
@@ -235,8 +309,96 @@ void AKF_ros::fusion_loop() {
     }
 }
 
+void AKF_ros::fusion_loop_1d() {
+    
+    ros::Rate r( 80 );
+    Eigen::Matrix<double,6, 6> A;
+    Eigen::Matrix<double,6,1> B;
+    Eigen::Matrix<double,1, 6> H_L;
+    Eigen::Matrix<double,1,6> H_V;
+    Eigen::Matrix<double,6,6> Q;
+    double r_l;
+    double r_v;
+    double a = exp(-_Dt/_tau);
+    A = sys_model::build_A_1d( a, _Dt );
+    B = sys_model::build_B_1d( a );
+    H_L = sys_model::build_Hl_1d();
+    H_V = sys_model::build_Hv_1d();
+
+    /*KF initialization*/
+    Eigen::Matrix<double, 6, 6> P_p = Matrix<double, 6, 6>::Identity();
+    Eigen::Matrix<double, 6, 6> P_u = Matrix<double, 6, 6>::Identity();
+    Eigen::Matrix<double, 6, 1> x_p = Matrix<double, 6, 1>::Zero();
+    Eigen::Matrix<double, 6, 1> x_u = Matrix<double, 6, 1>::Zero();
+    // Eigen::Matrix<double, 1, 1> y = Matrix<double, 6, 1>::Zero();
+    double y = 0;
+    Eigen::Matrix<double, 6, 1> K = Matrix<double, 6, 1>::Zero();
+    Q = 0.1*Matrix<double, 6, 6>::Identity();
+    nav_msgs::Odometry odom_out_msg;
+    while( ros::ok() ) {
+
+        if( _init_kf ) {
+            _init_kf = false;
+            x_p << _uav_pos[0], _uav_vel[0];
+            x_u = x_p;
+            ROS_INFO("Kalman filter's states initialized!");
+
+        }
+
+        if( _takeoff_done ) {
+            if( _meas_l_ok[0] && !_q_change_ok[0] ) {
+                Q(4,4) = Q(4,4)*_q_v_meas_l_ok[0];
+                _q_change_ok[0] = true;
+                ROS_WARN("Good x LIO meas. Update offset VIO");
+            }
+
+            x_p = A*x_u + B*_cmd_acc[0];
+            P_p = A*P_u*A.transpose() + _Dt*Q;
+
+            if( !_meas_l_ok[0] && !_rq_change_bad[0]){
+                r_l = r_l*_r_l_bad[0];
+                Q(3,3) = Q(3,3)*_q_l_meas_bad[0];
+                ROS_WARN("Update cov for LIO X");
+                _rq_change_bad[0] = true;
+            }
+
+            if( _lio_odom_msg_received /*&& _eig_received*/) {
+                _eig_received=false;
+                _lio_odom_msg_received=false;
+                y = _z_l(0,0) - H_L*x_p;
+                K = P_p * H_L.transpose() * 1/(H_L * P_p * H_L.transpose() + r_l);
+
+                x_u = x_p + K*y;
+                P_u = (Eigen::Matrix<double, 6,6>::Identity() - K * H_L) * P_p;
+                
+            }
+            else if( _ii_odom_msg_received ) {
+                _ii_odom_msg_received = false;
+                y = _z_v(0,0) - H_V*x_p;
+                K = P_p * H_V.transpose() * 1/(H_V * P_p * H_V.transpose() + r_v);
+
+                x_u = x_p + K*y;
+                P_u = (Eigen::Matrix<double,6,6>::Identity() - K * H_V) * P_p;
+            }
+        }
+        odom_out_msg.pose.pose.position.x = x_u[0];
+
+        odom_out_msg.twist.twist.linear.x = x_u[1];
+
+        _robot_est.publish(odom_out_msg);
+        if( _debug ) {
+            for(int i=0; i<6; i++) {
+                std::cout<<x_u(i)<<" ";
+            }
+            std::cout<<"\n";
+            
+        }
+        r.sleep();
+    }
+}
+
 void AKF_ros::run() {
-    boost::thread check_drift_t( &AKF_ros::fusion_loop, this );
+    boost::thread check_drift_t( &AKF_ros::fusion_loop_1d, this );
     ros::spin();
 }
 

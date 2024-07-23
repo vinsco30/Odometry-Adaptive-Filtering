@@ -89,6 +89,59 @@ namespace sys_model{
         return R;
     }
 
+    inline MatrixXd build_A_1d( float a, float Dt ) {
+
+
+        
+        Matrix<double, 6, 6> A = Matrix<double, 6,6>::Zero();
+        A << 1.0, Dt, (Dt*Dt)/2, 0, 0, 0,
+            0, 1.0, Dt, 0, 0, 0,
+            0, 0, 1.0, a, 0, 0, 
+            0, 0, 0, 1.0, 0, 0,
+            0, 0, 0, 0, 1.0, 0,
+            0, 0, 0, 0, 0, 1.0;
+
+            return A;
+    }
+
+    inline MatrixXd build_B_1d( float a ) {
+
+        Matrix<double, 6, 1> B = Matrix<double, 6, 1>::Zero();
+
+        B(2,0) = (1-a);
+
+        return B;
+    }
+
+    inline MatrixXd build_Hl_1d() {
+
+        Matrix<double, 1, 6> Hl = Matrix<double, 1, 6>::Zero();
+
+        // Hl.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
+        // Hl.block<6,6>(9,0) = -1*Matrix<double, 6, 6>::Identity();
+
+        // Hl.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
+        // Hl.block<3,3>(12,3) = 1*Matrix<double, 3, 3>::Identity();
+        Hl << 1, 0, 0, -1, 0, 0;
+
+        return Hl;
+    }
+
+        inline MatrixXd build_Hv_1d() {
+
+        Matrix<double, 1, 6> Hv = Matrix<double, 1, 6>::Zero();
+
+        // Hv.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
+        // Hv.block<3,3>(9,0) = -1*Matrix<double, 3, 3>::Identity();
+
+        // Hv.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
+        // Hv.block<3,3>(18,3) = 1*Matrix<double, 3, 3>::Identity();
+
+        Hv << 1, 0, 0, 0, -1, 0;
+
+        return Hv;
+    }
+
 
 }
 
