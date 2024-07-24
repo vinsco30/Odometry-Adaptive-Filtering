@@ -359,6 +359,7 @@ void AKF_ros::fusion_loop_1d() {
                 r_l = r_l*_r_l_bad[0];
                 Q(3,3) = Q(3,3)*_q_l_meas_bad[0];
                 ROS_WARN("Update cov for LIO X");
+                Q(4,4) = Q(4,4)*1/_q_v_meas_l_ok[0];
                 _rq_change_bad[0] = true;
             }
 
