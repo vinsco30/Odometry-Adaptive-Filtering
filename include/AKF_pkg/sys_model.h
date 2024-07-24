@@ -93,20 +93,21 @@ namespace sys_model{
 
 
         
-        Matrix<double, 6, 6> A = Matrix<double, 6,6>::Zero();
-        A << 1.0, Dt, (Dt*Dt)/2, 0, 0, 0,
-            0, 1.0, Dt, 0, 0, 0,
-            0, 0, 1.0, a, 0, 0, 
-            0, 0, 0, 1.0, 0, 0,
-            0, 0, 0, 0, 1.0, 0,
-            0, 0, 0, 0, 0, 1.0;
+        Matrix<double, 7, 7> A = Matrix<double, 7,7>::Zero();
+        A << 1.0, Dt, (Dt*Dt)/2, 0, 0, 0, 0,
+            0, 1.0, Dt, 0, 0, 0, 0,
+            0, 0, 1.0, a, 0, 0, 0,
+            0, 0, 0, 1.0, 0, 0, 0,
+            0, 0, 0, 0, 1.0, 0, 0,
+            0, 0, 0, 0, 0, 1.0, 0,
+            0, 0, 0, 0, 0, 0, 1.0;
 
             return A;
     }
 
     inline MatrixXd build_B_1d( float a ) {
 
-        Matrix<double, 6, 1> B = Matrix<double, 6, 1>::Zero();
+        Matrix<double, 7, 1> B = Matrix<double, 7, 1>::Zero();
 
         B(2,0) = (1-a);
 
@@ -115,21 +116,22 @@ namespace sys_model{
 
     inline MatrixXd build_Hl_1d() {
 
-        Matrix<double, 1, 6> Hl = Matrix<double, 1, 6>::Zero();
+        Matrix<double, 2, 7> Hl = Matrix<double, 2, 7>::Zero();
 
         // Hl.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
         // Hl.block<6,6>(9,0) = -1*Matrix<double, 6, 6>::Identity();
 
         // Hl.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
         // Hl.block<3,3>(12,3) = 1*Matrix<double, 3, 3>::Identity();
-        Hl << 1, 0, 0, -1, 0, 0;
+        Hl << 1.0, 0, 0, -1.0, 0, 0, 0,
+                0, 1.0, 0, 0, 1, 0, 0;
 
         return Hl;
     }
 
         inline MatrixXd build_Hv_1d() {
 
-        Matrix<double, 1, 6> Hv = Matrix<double, 1, 6>::Zero();
+        Matrix<double, 2, 7> Hv = Matrix<double, 2, 7>::Zero();
 
         // Hv.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
         // Hv.block<3,3>(9,0) = -1*Matrix<double, 3, 3>::Identity();
@@ -137,7 +139,76 @@ namespace sys_model{
         // Hv.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
         // Hv.block<3,3>(18,3) = 1*Matrix<double, 3, 3>::Identity();
 
-        Hv << 1, 0, 0, 0, -1, 0;
+        Hv << 1.0, 0, 0, 0, 0, -1.0, 0,
+                0, 1.0, 0, 0, 0, 0, 1;
+
+        return Hv;
+    }
+
+    inline MatrixXd build_A_2d( float a, float Dt ) {
+
+
+        
+        Matrix<double, 14, 14> A = Matrix<double, 14,14>::Zero();
+
+        A <<1.0, 0.0, Dt, 0, (Dt*Dt)/2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1.0, 0, Dt, 0, (Dt*Dt)/2, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1.0, 0, Dt, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1.0, 0, Dt, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0;
+
+            return A;
+    }
+
+    inline MatrixXd build_B_2d( float a ) {
+
+        Matrix<double, 14, 2> B = Matrix<double, 14, 2>::Zero();
+
+        B(4,0) = (1-a);
+        B(5,1) = (1-a);
+
+        return B;
+    }
+
+    inline MatrixXd build_Hl_2d() {
+
+        Matrix<double, 4, 14> Hl = Matrix<double, 4, 14>::Zero();
+
+        // Hl.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
+        // Hl.block<6,6>(9,0) = -1*Matrix<double, 6, 6>::Identity();
+
+        // Hl.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
+        // Hl.block<3,3>(12,3) = 1*Matrix<double, 3, 3>::Identity();
+        Hl <<1.0, 0, 0, 0, 0, 0, -1.0, 0, 0, 0, 0, 0, 0, 0,
+             0, 1.0, 0, 0, 0, 0, 0, -1.0, 0, 0, 0, 0, 0, 0,
+             0, 0, 1.0, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0,
+             0, 0, 0, 1.0, 0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0;
+
+        return Hl;
+    }
+
+    inline MatrixXd build_Hv_2d() {
+
+        Matrix<double, 4, 14> Hv = Matrix<double, 4, 14>::Zero();
+
+        // Hl.block<6,6>(0,0) = Matrix<double, 6, 6>::Identity();
+        // Hl.block<6,6>(9,0) = -1*Matrix<double, 6, 6>::Identity();
+
+        // Hl.block<3,3>(3,3) = Matrix<double, 3, 3>::Identity();
+        // Hl.block<3,3>(12,3) = 1*Matrix<double, 3, 3>::Identity();
+        Hv <<1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1.0, 0, 0, 0,
+             0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1.0, 0, 0,
+             0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0, 0,
+             0, 0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0;
 
         return Hv;
     }

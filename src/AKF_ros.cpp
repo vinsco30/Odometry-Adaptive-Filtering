@@ -46,6 +46,8 @@ AKF_ros::AKF_ros() {
 
     //--Output
     _robot_est = _nh.advertise<nav_msgs::Odometry>( "/AKF/odom", 1000 );
+    _filter_state_x = _nh.advertise<std_msgs::Bool>( "/AKF/state_x", 1000 );
+    _filter_state_y = _nh.advertise<std_msgs::Bool>( "/AKF/state_y", 1000 );
 
     //---Initialization
     _lio_odom_msg_received = false; 
@@ -57,6 +59,8 @@ AKF_ros::AKF_ros() {
     _meas_l_ok << true, true, true;
     // _q_change_ok << false, false, false;
     _takeoff_done = false;
+    _state_x = false;
+    _state_y = false;
 
 }
 
@@ -86,19 +90,25 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         _meas_l_ok[0] = true;
         _q_change_ok[0] = false;
         _rq_change_bad[0] = false;
+        _state_x=false;
     }
     else if( _meas_l_ok[0] && _eig_xyz[0] < _lambda_x+_epsilon[0]+5 ) {
         _meas_l_ok[0] = false;
         ROS_ERROR("Meas x BAD");
+        _state_x = true;
     }
     //y
-    if( !_meas_l_ok[1] && _eig_xyz[1] > _lambda_y+_epsilon[1] ) {
+    if( !_meas_l_ok[1] && _eig_xyz[1] > _lambda_y+_epsilon[1]+10 ) {
+        ROS_WARN("Meas y OK after");
         _meas_l_ok[1] = true;
         _q_change_ok[1] = false;
         _rq_change_bad[1] = false;
+        _state_y = false;
     }
-    else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y ) {
+    else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y+_epsilon[1]+5 ) {
         _meas_l_ok[1] = false;
+         ROS_ERROR("Meas y BAD");
+        _state_y = true;
     }
     //z
     if( !_meas_l_ok[2] && _eig_xyz[2] > _lambda_z+_epsilon[2] ) {
@@ -312,13 +322,15 @@ void AKF_ros::fusion_loop() {
 void AKF_ros::fusion_loop_1d() {
     
     ros::Rate r( 80 );
-    Eigen::Matrix<double,6, 6> A;
-    Eigen::Matrix<double,6,1> B;
-    Eigen::Matrix<double,1, 6> H_L;
-    Eigen::Matrix<double,1,6> H_V;
-    Eigen::Matrix<double,6,6> Q;
-    double r_l;
-    double r_v;
+    Eigen::Matrix<double,7, 7> A;
+    Eigen::Matrix<double,7,1> B;
+    Eigen::Matrix<double,2, 7> H_L;
+    Eigen::Matrix<double,2,7> H_V;
+    Eigen::Matrix<double,7,7> Q;
+    Eigen::Matrix<double,2,2> R_l;
+    Eigen::Matrix<double,2,2> R_v;
+    // double r_l;
+    // double r_v;
     double a = exp(-_Dt/_tau);
     A = sys_model::build_A_1d( a, _Dt );
     B = sys_model::build_B_1d( a );
@@ -326,15 +338,18 @@ void AKF_ros::fusion_loop_1d() {
     H_V = sys_model::build_Hv_1d();
 
     /*KF initialization*/
-    Eigen::Matrix<double, 6, 6> P_p = Matrix<double, 6, 6>::Identity();
-    Eigen::Matrix<double, 6, 6> P_u = Matrix<double, 6, 6>::Identity();
-    Eigen::Matrix<double, 6, 1> x_p = Matrix<double, 6, 1>::Zero();
-    Eigen::Matrix<double, 6, 1> x_u = Matrix<double, 6, 1>::Zero();
-    // Eigen::Matrix<double, 1, 1> y = Matrix<double, 6, 1>::Zero();
-    double y = 0;
-    Eigen::Matrix<double, 6, 1> K = Matrix<double, 6, 1>::Zero();
-    Q = 0.1*Matrix<double, 6, 6>::Identity();
+    Eigen::Matrix<double, 7, 7> P_p = Matrix<double, 7, 7>::Identity();
+    Eigen::Matrix<double, 7, 7> P_u = Matrix<double, 7, 7>::Identity();
+    Eigen::Matrix<double, 7, 1> x_p = Matrix<double, 7, 1>::Zero();
+    Eigen::Matrix<double, 7, 1> x_u = Matrix<double, 7, 1>::Zero();
+    Eigen::Matrix<double, 2, 1> y = Matrix<double, 2, 1>::Zero();
+    // double y = 0;
+    Eigen::Matrix<double, 7, 2> K = Matrix<double, 7, 2>::Zero();
+    Q = 0.1*Matrix<double, 7, 7>::Identity();
+    R_l = 0.1*Matrix<double, 2, 2>::Identity();
+    R_v = 0.1*Matrix<double, 2, 2>::Identity();
     nav_msgs::Odometry odom_out_msg;
+    Eigen::Vector2d z_l_1d, z_v_1d;
     while( ros::ok() ) {
 
         if( _init_kf ) {
@@ -347,7 +362,8 @@ void AKF_ros::fusion_loop_1d() {
 
         if( _takeoff_done ) {
             if( _meas_l_ok[0] && !_q_change_ok[0] ) {
-                Q(4,4) = Q(4,4)*_q_v_meas_l_ok[0];
+                Q(5,5) = Q(5,5)*_q_v_meas_l_ok[0];
+                Q(6,6) = Q(6,6)*_q_v_meas_l_ok[0];
                 _q_change_ok[0] = true;
                 ROS_WARN("Good x LIO meas. Update offset VIO");
             }
@@ -356,30 +372,35 @@ void AKF_ros::fusion_loop_1d() {
             P_p = A*P_u*A.transpose() + _Dt*Q;
 
             if( !_meas_l_ok[0] && !_rq_change_bad[0]){
-                r_l = r_l*_r_l_bad[0];
+                R_l(0,0) = R_l(0,0)*_r_l_bad[0];
                 Q(3,3) = Q(3,3)*_q_l_meas_bad[0];
+                Q(4,4) = Q(4,4)*_q_l_meas_bad[0];
                 ROS_WARN("Update cov for LIO X");
-                Q(4,4) = Q(4,4)*1/_q_v_meas_l_ok[0];
+                Q(5,5) = Q(5,5)*1/_q_v_meas_l_ok[0];
+                Q(6,6) = Q(6,6)*1/_q_v_meas_l_ok[0];
                 _rq_change_bad[0] = true;
             }
-
+            z_l_1d << _z_l(0,0), _z_l(3,0);
+            z_v_1d << _z_v(0,0), _z_v(3,0);
             if( _lio_odom_msg_received /*&& _eig_received*/) {
                 _eig_received=false;
                 _lio_odom_msg_received=false;
-                y = _z_l(0,0) - H_L*x_p;
-                K = P_p * H_L.transpose() * 1/(H_L * P_p * H_L.transpose() + r_l);
+                y = z_l_1d - H_L*x_p;
+                // K = P_p * H_L.transpose() * 1/(H_L * P_p * H_L.transpose() + r_l);
+                K = P_p * H_L.transpose() * (H_L * P_p * H_L.transpose() + R_l).inverse();
 
                 x_u = x_p + K*y;
-                P_u = (Eigen::Matrix<double, 6,6>::Identity() - K * H_L) * P_p;
+                P_u = (Eigen::Matrix<double, 7,7>::Identity() - K * H_L) * P_p;
                 
             }
             else if( _ii_odom_msg_received ) {
                 _ii_odom_msg_received = false;
-                y = _z_v(0,0) - H_V*x_p;
-                K = P_p * H_V.transpose() * 1/(H_V * P_p * H_V.transpose() + r_v);
+                y = _z_v.block<2,1>(0,0) - H_V*x_p;
+                // K = P_p * H_V.transpose() * 1/(H_V * P_p * H_V.transpose() + r_v);
+                K = P_p * H_V.transpose() * (H_V * P_p * H_V.transpose() + R_v).inverse();
 
                 x_u = x_p + K*y;
-                P_u = (Eigen::Matrix<double,6,6>::Identity() - K * H_V) * P_p;
+                P_u = (Eigen::Matrix<double,7,7>::Identity() - K * H_V) * P_p;
             }
         }
         odom_out_msg.pose.pose.position.x = x_u[0];
@@ -398,8 +419,139 @@ void AKF_ros::fusion_loop_1d() {
     }
 }
 
+void AKF_ros::fusion_loop_2d() {
+    
+    ros::Rate r( 80 );
+    Eigen::Matrix<double,14, 14> A;
+    Eigen::Matrix<double,14,2> B;
+    Eigen::Matrix<double,4, 14> H_L;
+    Eigen::Matrix<double,4,14> H_V;
+    Eigen::Matrix<double,14,14> Q;
+    Eigen::Matrix<double,4,4> R_l;
+    Eigen::Matrix<double,4,4> R_v;
+    // double r_l;
+    // double r_v;
+    double a = exp(-_Dt/_tau);
+    A = sys_model::build_A_2d( a, _Dt );
+    B = sys_model::build_B_2d( a );
+    H_L = sys_model::build_Hl_2d();
+    H_V = sys_model::build_Hv_2d();
+    // for(int i=0; i<4; i++) {
+    //     for(int j=0; j<14; j++) {
+    //         std::cout<<H_V(i,j)<<" ";
+    //     }
+    //     std::cout<<"\n";
+    // }
+    // std::cout<<"Dimension H_v: rows="<<H_V.rows()<<" cols="<<H_V.cols()<<"\n";
+    /*KF initialization*/
+    Eigen::Matrix<double, 14, 14> P_p = Matrix<double, 14, 14>::Identity();
+    Eigen::Matrix<double, 14, 14> P_u = Matrix<double, 14, 14>::Identity();
+    Eigen::Matrix<double, 14, 1> x_p = Matrix<double, 14, 1>::Zero();
+    Eigen::Matrix<double, 14, 1> x_u = Matrix<double, 14, 1>::Zero();
+    Eigen::Matrix<double, 4, 1> y = Matrix<double, 4, 1>::Zero();
+    // double y = 0;
+    Eigen::Matrix<double, 14, 4> K = Matrix<double, 14, 4>::Zero();
+    Q = 0.1*Matrix<double, 14, 14>::Identity();
+    R_l = 0.1*Matrix<double, 4, 4>::Identity();
+    R_v = 0.1*Matrix<double, 4, 4>::Identity();
+    nav_msgs::Odometry odom_out_msg;
+    Eigen::Vector2d u;
+    Eigen::Vector4d z_l_2d, z_v_2d;
+    std_msgs::Bool state_x;
+    std_msgs::Bool state_y;
+    while( ros::ok() ) {
+
+        if( _init_kf ) {
+            _init_kf = false;
+            x_p << _uav_pos[0], _uav_pos[1], _uav_vel[0], _uav_vel[1];
+            x_u = x_p;
+            ROS_INFO("Kalman filter's states initialized!");
+
+        }
+        u << _cmd_acc[0], _cmd_acc[1];
+
+        if( _takeoff_done ) {
+            if( _meas_l_ok[0] && !_q_change_ok[0] ) {
+                Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
+                Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0];
+                _q_change_ok[0] = true;
+                ROS_WARN("Good X LIO meas. Update offset VIO");
+            }
+            if( _meas_l_ok[1] && !_q_change_ok[1] ) {
+                Q(11,11) = Q(11,11)*_q_v_meas_l_ok[1];
+                Q(13,13) = Q(13,13)*_q_v_meas_l_ok[1];
+                _q_change_ok[1] = true;
+                ROS_WARN("Good Y LIO meas. Update offset VIO");
+            }
+
+            x_p = A*x_u + B*u;
+            P_p = A*P_u*A.transpose() + _Dt*Q;
+
+            if( !_meas_l_ok[0] && !_rq_change_bad[0]){
+                R_l(0,0) = R_l(0,0)*_r_l_bad[0];
+                R_l(2,2) = R_l(2,2)*_r_l_bad[0];
+                Q(6,6) = Q(6,6)*_q_l_meas_bad[0];
+                Q(8,8) = Q(8,8)*_q_l_meas_bad[0];
+                ROS_WARN("Update cov for LIO X");
+                Q(10,10) = Q(10,10)*1/_q_v_meas_l_ok[0];
+                Q(12,12) = Q(12,12)*1/_q_v_meas_l_ok[0];
+                _rq_change_bad[0] = true;
+            }
+            if( !_meas_l_ok[1] && !_rq_change_bad[1]){
+                R_l(1,1) = R_l(1,1)*_r_l_bad[1];
+                R_l(3,3) = R_l(3,3)*_r_l_bad[1];
+                Q(7,7) = Q(7,7)*_q_l_meas_bad[1];
+                Q(9,9) = Q(9,9)*_q_l_meas_bad[1];
+                ROS_WARN("Update cov for LIO Y");
+                Q(11,11) = Q(11,11)*1/_q_v_meas_l_ok[1];
+                Q(13,13) = Q(13,13)*1/_q_v_meas_l_ok[1];
+                _rq_change_bad[1] = true;
+            }
+            z_l_2d << _z_l.block<2,1>(0,0), _z_l.block<2,1>(3,0);
+            z_v_2d << _z_v.block<2,1>(0,0), _z_v.block<2,1>(3,0);
+            if( _lio_odom_msg_received /*&& _eig_received*/) {
+                _eig_received=false;
+                _lio_odom_msg_received=false;
+                y = z_l_2d - H_L*x_p;
+                K = P_p * H_L.transpose() * (H_L * P_p * H_L.transpose() + R_l).inverse();
+
+                x_u = x_p + K*y;
+                P_u = (Eigen::Matrix<double, 14,14>::Identity() - K * H_L) * P_p;
+                
+            }
+            else if( _ii_odom_msg_received ) {
+                _ii_odom_msg_received = false;
+                y = z_v_2d - H_V*x_p;
+                K = P_p * H_V.transpose() * (H_V * P_p * H_V.transpose() + R_v).inverse();
+
+                x_u = x_p + K*y;
+                P_u = (Eigen::Matrix<double,14,14>::Identity() - K * H_V) * P_p;
+            }
+        }
+        odom_out_msg.pose.pose.position.x = x_u[0];
+        odom_out_msg.pose.pose.position.y = x_u[1];
+        odom_out_msg.twist.twist.linear.x = x_u[2];
+        odom_out_msg.twist.twist.linear.y = x_u[3];
+
+        state_x.data = _state_x;
+        state_y.data = _state_y;
+
+
+        _robot_est.publish(odom_out_msg);
+        _filter_state_x.publish(state_x);
+        _filter_state_y.publish(state_y);
+        if( _debug ) {
+            for(int i=0; i<6; i++) {
+                std::cout<<x_u(i)<<" ";
+            }
+            std::cout<<"\n";
+            
+        }
+        r.sleep();
+    }
+}
 void AKF_ros::run() {
-    boost::thread check_drift_t( &AKF_ros::fusion_loop_1d, this );
+    boost::thread check_drift_t( &AKF_ros::fusion_loop_2d, this );
     ros::spin();
 }
 

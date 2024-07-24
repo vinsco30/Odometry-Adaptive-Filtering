@@ -12,6 +12,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 
 #include <Eigen/Dense>
 #include "boost/thread.hpp"
@@ -37,6 +38,7 @@ class AKF_ros {
         Eigen::MatrixXd& Q, Eigen::MatrixXd& R_l, Eigen::MatrixXd& R_v );
         void fusion_loop();
         void fusion_loop_1d();
+        void fusion_loop_2d();
 
         void run();
     
@@ -53,6 +55,8 @@ class AKF_ros {
         ros::Subscriber _second_source_sub; 
 
         ros::Publisher _robot_est;
+        ros::Publisher _filter_state_x;
+        ros::Publisher _filter_state_y;
         
         Eigen::Vector3d _cmd_acc;
         Eigen::Vector3d _cmd_vel;
@@ -75,6 +79,8 @@ class AKF_ros {
         Eigen::Vector3d _eig_xyz;
         int _points;
         double _trace;
+        bool _state_x;
+        bool _state_y;
 
         /*Flags*/
         bool _eig_received;

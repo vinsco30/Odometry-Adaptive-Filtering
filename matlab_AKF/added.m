@@ -127,12 +127,12 @@
 clear
 clc
 
-p = sym('p', [3 1]);
-v = sym('v', [3 1]);
-a = sym('a', [3 1]);
+p = sym('p', [2 1]);
+v = sym('v', [2 1]);
+a = sym('a', [2 1]);
 
-dt_l = sym('dt_l',[6 1]);
-dt_v = sym('dt_v',[6 1]);
+dt_l = sym('dt_l',[4 1]);
+dt_v = sym('dt_v',[4 1]);
 Dt = sym('Dt',[1 1]);
 x = [p; v; a; dt_l; dt_v];
 A = [eye(3), Dt*eye(3), Dt^2/2*eye(3), zeros(3,12);
@@ -141,8 +141,8 @@ A = [eye(3), Dt*eye(3), Dt^2/2*eye(3), zeros(3,12);
     zeros(12,3), zeros(12,3), zeros(12,3), eye(12)];
 B = [zeros(6,3); (1-a).*eye(3,3); zeros(12,3)];
 u = sym('u', [3 1]);
-H_L = [eye(3), zeros(3), zeros(3), -eye(3), zeros(3), zeros(3,6);
-    zeros(3), eye(3), zeros(3), zeros(3), eye(3), zeros(3,6)];
+H_L = [eye(2), zeros(2), zeros(2), -eye(2), zeros(2), zeros(2,4);
+    zeros(2), eye(2), zeros(2), zeros(2), eye(2), zeros(2,4)];
 H_V = [eye(3), zeros(3), zeros(3), zeros(3,6), -eye(3), zeros(3);
     zeros(3), eye(3), zeros(3), zeros(3,6), zeros(3), eye(3)];
 Q = sym('Q',[21 21]);

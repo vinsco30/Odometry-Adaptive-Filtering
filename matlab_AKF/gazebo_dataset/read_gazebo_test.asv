@@ -1,0 +1,98 @@
+clear 
+close all
+clc
+
+bag = rosbag("gazebo_dataset/test_AKF_2d_1.bag");
+bSel = select(bag,'Topic','/aft_mapped_to_init');
+bSel1 = select(bag,'Topic','/uav1/hw_api/odometry');
+bSel2 = select(bag,'Topic','/AKF/odom');
+
+bMetrics = select(bag, 'Topic','/point_lio/eig');
+bMetrics2 = select(bag, 'Topic','/point_lio/n_points');
+bMetrics3 = select(bag, 'Topic','/point_lio/trace');
+
+msgStructs = readMessages(bSel,'DataFormat','struct');
+msgStructs1 = readMessages(bSel1,'DataFormat','struct');
+msgStructs2 = readMessages(bSel2,'DataFormat','struct');
+
+msgM = readMessages(bMetrics,'DataFormat','struct');
+msgM2 = readMessages(bMetrics2,'DataFormat','struct');
+msgM3 = readMessages(bMetrics3,'DataFormat','struct');
+
+%Point LIO
+x_lio = cellfun(@(m) double(m.Pose.Pose.Position.X), msgStructs);
+y_lio = cellfun(@(m) double(m.Pose.Pose.Position.Y), msgStructs);
+z_lio = cellfun(@(m) double(m.Pose.Pose.Position.Z), msgStructs);
+vx_lio = cellfun(@(m) double(m.Twist.Twist.Linear.X), msgStructs);
+vy_lio = cellfun(@(m) double(m.Twist.Twist.Linear.Y), msgStructs);
+vz_lio = cellfun(@(m) double(m.Twist.Twist.Linear.Z), msgStructs);
+
+% Second source
+x_gt = cellfun(@(m) double(m.Pose.Pose.Position.X), msgStructs1);
+y_gt = cellfun(@(m) double(m.Pose.Pose.Position.Y), msgStructs1);
+z_gt = cellfun(@(m) double(m.Pose.Pose.Position.Z), msgStructs1);
+vx_gt = cellfun(@(m) double(m.Twist.Twist.Linear.X), msgStructs1);
+vy_gt = cellfun(@(m) double(m.Twist.Twist.Linear.Y), msgStructs1);
+vz_gt = cellfun(@(m) double(m.Twist.Twist.Linear.Z), msgStructs1);
+
+% AKF outpu
+x_akf = cellfun(@(m) double(m.Pose.Pose.Position.X), msgStructs2);
+y_akf = cellfun(@(m) double(m.Pose.Pose.Position.Y), msgStructs2);
+vx_akf = cellfun(@(m) double(m.Twist.Twist.Linear.X), msgStructs2);
+vy_akf = cellfun(@(m) double(m.Twist.Twist.Linear.Y), msgStructs2);
+
+
+% Degradation metrics
+eig_x = cellfun(@(m) double(m.Data(7,1)), msgM);
+eig_y = cellfun(@(m) double(m.Data(8,1)), msgM);
+eig_z = cellfun(@(m) double(m.Data(9,1)), msgM);
+eig_velx = cellfun(@(m) double(m.Data(10,1)), msgM);
+eig_vely = cellfun(@(m) double(m.Data(11,1)), msgM);
+eig_velz = cellfun(@(m) double(m.Data(12,1)), msgM);
+n_points = cellfun(@(m) double(m.Data), msgM2);
+trace = cellfun(@(m) double(m.Data), msgM3);
+
+% Downsampling
+minL = [min([length(x_lio),length(x_akf), length(x_gt), length(eig_x)])];
+
+rapp_lio = minL/length(x_lio);
+fraction_lio = sym(rapp_lio);
+[num, den] = numden(fraction_lio);
+ll = double(num);
+ff = double(den);
+x_lio_def = resample(x_lio,ll,ff);
+y_lio_def = resample(y_lio,ll,ff);
+
+rapp_gt = minL/length(x_gt);
+fraction_gt= sym(rapp_gt);
+[num_gt, den_gt] = numden(fraction_gt);
+l_gt = double(num_gt);
+f_gt = double(den_gt);
+x_gt_def = resample(x_gt,l_gt,f_gt);
+y_gt_def = resample(y_gt,l_gt,f_gt);
+
+rapp_akf = minL/length(x_akf);
+fraction_akf = sym(rapp_akf);
+[num_akf, den_akf] = numden(fraction_akf);
+l_akf = double(num_akf);
+f_akf = double(den_akf);
+x_akf_def = resample(x_akf,l_akf,f_akf);
+y_akf_def = resample(y_akf,l_akf,f_akf);
+
+rapp_m = minL/length(eig_x);
+fraction_m = sym(rapp_m);
+[num_m, den_m] = numden(fraction_m);
+l_m = double(num_m);
+f_m = double(den_m);
+eig_x_def = resample(eig_x,l_m,f_l);
+eig_y_def = resample(eig_y,l_m,f_l);
+n_points_def = resample(n_points,l_m,f_m);
+
+% Plotting
+figure
+subplot(2,1,1)
+plot(x_lio_def,'r',LineWidth=2);
+plot()
+
+
+
