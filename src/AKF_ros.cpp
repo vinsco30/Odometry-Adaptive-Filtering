@@ -43,6 +43,7 @@ AKF_ros::AKF_ros() {
     _eig_sub = _nh.subscribe<std_msgs::Float32MultiArray>( "/point_lio/eig", 1, &AKF_ros::eig_cb, this );
     _second_source_sub = _nh.subscribe<nav_msgs::Odometry>( "/uav1/hw_api/odometry", 1, &AKF_ros::second_odom_cb, this );
     _points_sub = _nh.subscribe<std_msgs::UInt16>( "/point_lio/n_points", 1, &AKF_ros::points_cb, this );
+    _trace_sub = _nh.subscribe<std_msgs::Float32>( "/point_lio/trace", 1, &AKF_ros::trace_cb, this );
 
     //--Output
     _robot_est = _nh.advertise<nav_msgs::Odometry>( "/AKF/odom", 1000 );
@@ -54,6 +55,7 @@ AKF_ros::AKF_ros() {
     _ii_odom_msg_received = false;
     _new_ctrl_acc = false;
     _points_received = false;
+    _trace_received = false;
     _first_meas = true;
     _init_kf = false;
     _meas_l_ok << true, true, true;
@@ -85,7 +87,7 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     if( _takeoff_done ) {
     //x
     // std::cout<<_meas_l_ok[0]<<"\n";
-    if( !_meas_l_ok[0] && _eig_xyz[0] > _lambda_x+_epsilon[0]+10 ) {
+    if( !_meas_l_ok[0] && _eig_xyz[0] > _lambda_x+_epsilon[0]+12 ) {
         ROS_WARN("Meas x OK after");
         _meas_l_ok[0] = true;
         _q_change_ok[0] = false;
@@ -105,7 +107,7 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         _rq_change_bad[1] = false;
         _state_y = false;
     }
-    else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y+_epsilon[1]+5 ) {
+    else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y+_epsilon[1]+4 ) {
         _meas_l_ok[1] = false;
          ROS_ERROR("Meas y BAD");
         _state_y = true;
@@ -159,6 +161,11 @@ void AKF_ros::points_cb( const std_msgs::UInt16 points_msg ) {
     _points << points_msg.data;
 
     _points_received = true;
+}
+
+void AKF_ros::trace_cb( const std_msgs::Float32 tr_msg ) {
+    _trace = tr_msg.data;
+    _trace_received = true;
 }
 
 void AKF_ros::AKF_creation( Eigen::MatrixXd& A, Eigen::MatrixXd& B, Eigen::MatrixXd& H_l, Eigen::MatrixXd& H_v,
@@ -459,6 +466,8 @@ void AKF_ros::fusion_loop_2d() {
     Eigen::Vector4d z_l_2d, z_v_2d;
     std_msgs::Bool state_x;
     std_msgs::Bool state_y;
+    bool if_first_update_x = true;
+    bool if_first_update_y = true;
     while( ros::ok() ) {
 
         if( _init_kf ) {
@@ -472,14 +481,40 @@ void AKF_ros::fusion_loop_2d() {
 
         if( _takeoff_done ) {
             if( _meas_l_ok[0] && !_q_change_ok[0] ) {
-                Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
-                Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0];
+                if( if_first_update_x ) {
+                    Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
+                    Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0];
+                    if_first_update_x = false;   
+                }
+                else {
+                    ROS_ERROR("I go back to the oldest covariances.");
+                    Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
+                    Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0]; 
+                    R_l(0,0) = R_l(0,0)*1/_r_l_bad[0];
+                    R_l(2,2) = R_l(2,2)*1/_r_l_bad[0];
+                    Q(6,6) = Q(6,6)*1/_q_l_meas_bad[0];
+                    Q(8,8) = Q(8,8)*1/_q_l_meas_bad[0];
+                }
+
                 _q_change_ok[0] = true;
                 ROS_WARN("Good X LIO meas. Update offset VIO");
             }
             if( _meas_l_ok[1] && !_q_change_ok[1] ) {
-                Q(11,11) = Q(11,11)*_q_v_meas_l_ok[1];
-                Q(13,13) = Q(13,13)*_q_v_meas_l_ok[1];
+                if( if_first_update_y ) {
+                    Q(11,11) = Q(11,11)*_q_v_meas_l_ok[1];
+                    Q(13,13) = Q(13,13)*_q_v_meas_l_ok[1];
+                    if_first_update_y = false;
+
+                }
+                else {
+                    R_l(1,1) = R_l(1,1)*1/_r_l_bad[1];
+                    R_l(3,3) = R_l(3,3)*1/_r_l_bad[1];
+                    Q(7,7) = Q(7,7)*1/_q_l_meas_bad[1];
+                    Q(9,9) = Q(9,9)*1/_q_l_meas_bad[1];
+                    Q(11,11) = Q(11,11)*_q_v_meas_l_ok[1];
+                    Q(13,13) = Q(13,13)*_q_v_meas_l_ok[1];
+                }
+
                 _q_change_ok[1] = true;
                 ROS_WARN("Good Y LIO meas. Update offset VIO");
             }
