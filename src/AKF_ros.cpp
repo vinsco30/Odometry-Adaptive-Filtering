@@ -26,6 +26,15 @@ AKF_ros::AKF_ros() {
     if( !_nh.getParam("debug", _debug) ) {
         _debug = false;
     } 
+    if( !_nh.getParam("dist_threshold", _dist_th ) ) {
+        _dist_th = 1.0;
+    }
+    if( !_nh.getParam("time_threshold", _time_th ) ) {
+        _time_th = 5.0;
+    }
+    if( !_nh.getParam("node_name", _node_name) ) {
+        _node_name = "/laserMapping";
+    }
 
     _nh.getParam( "kx", _kx );
     _nh.getParam( "ky", _ky );
@@ -63,6 +72,7 @@ AKF_ros::AKF_ros() {
     _takeoff_done = false;
     _state_x = false;
     _state_y = false;
+    _dist_max = false;
 
 }
 
@@ -585,8 +595,42 @@ void AKF_ros::fusion_loop_2d() {
         r.sleep();
     }
 }
+
+void AKF_ros::monitor_LIO() {
+    ros::Rate r( 10 );
+
+    while( ros::ok() ) {
+
+        if( _takeoff_done ) {
+
+            if( sqrt(pow(_uav_pos[0]-_pose_gt[0],2) + pow(_uav_pos[1]-_pose_gt[1],2)) > _dist_th && !_dist_max ) {
+                _dist_max = true;
+                _t1 = ros::Time::now();
+                std::cout<<sqrt(pow(_uav_pos[0]-_pose_gt[0],2) + pow(_uav_pos[1]-_pose_gt[1],2))<<"\n";
+            }
+            if( sqrt(pow(_uav_pos[0]-_pose_gt[0],2) + pow(_uav_pos[1]-_pose_gt[1],2)) <= _dist_th ) {
+                _dist_max = false;
+            }
+            _t2 = ros::Time::now();
+            if( (_t2 - _t1).toSec() > _time_th && _dist_max ) {
+                ROS_ERROR( "Killing the node %s!", _node_name.c_str() );
+
+                std::string kill_cmd = "rosnode kill "+ _node_name;
+                system( kill_cmd.c_str() );
+
+                ros::Duration(3.0).sleep();
+
+                ROS_INFO( "Node %s killed", _node_name.c_str() );
+            }
+        }
+
+        
+        r.sleep();
+    }
+}
 void AKF_ros::run() {
     boost::thread check_drift_t( &AKF_ros::fusion_loop_2d, this );
+    boost::thread monitor_lio_t( &AKF_ros::monitor_LIO, this );
     ros::spin();
 }
 

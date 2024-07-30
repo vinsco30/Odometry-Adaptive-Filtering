@@ -39,6 +39,7 @@ class AKF_ros {
         void fusion_loop();
         void fusion_loop_1d();
         void fusion_loop_2d();
+        void monitor_LIO();
 
         void run();
     
@@ -81,6 +82,9 @@ class AKF_ros {
         double _trace;
         bool _state_x;
         bool _state_y;
+        bool _dist_max;
+
+        ros::Time _t1,_t2;
 
         /*Flags*/
         bool _eig_received;
@@ -109,5 +113,8 @@ class AKF_ros {
         std::vector<double> _r_l_bad;
         std::vector<double> _q_l_meas_bad;
         bool _debug;
+        double _dist_th;
+        double _time_th;
+        std::string _node_name;
 
 };
