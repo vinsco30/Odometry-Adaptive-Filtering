@@ -13,6 +13,8 @@
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
 
 #include <Eigen/Dense>
 #include "boost/thread.hpp"
@@ -69,6 +71,8 @@ class AKF_ros {
 
         Eigen::Vector3d _pose_gt;
         Eigen::Vector3d _vel_gt;
+        Eigen::Vector4d _quat_gt;
+        std::string _frame_gt;
 
         Eigen::Matrix<double,6,1> _z_l;
         Eigen::Matrix<double,6,1> _z_v;
@@ -82,7 +86,7 @@ class AKF_ros {
         double _trace;
         bool _state_x;
         bool _state_y;
-        bool _dist_max;
+        
 
         ros::Time _t1,_t2;
 
@@ -96,6 +100,8 @@ class AKF_ros {
         bool _first_meas;
         bool _init_kf;
         bool _takeoff_done;
+        bool _dist_max;
+        bool _killed;
 
         /*Parameters*/
         int _states;

@@ -73,6 +73,7 @@ AKF_ros::AKF_ros() {
     _state_x = false;
     _state_y = false;
     _dist_max = false;
+    _killed = false;
 
 }
 
@@ -83,8 +84,6 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     _uav_vel << lio_msg.twist.twist.linear.x, lio_msg.twist.twist.linear.y, lio_msg.twist.twist.linear.z;
     _uav_ang_vel << lio_msg.twist.twist.angular.x, lio_msg.twist.twist.angular.y, lio_msg.twist.twist.angular.z;
 
-    _z_l.block<3,1>(0,0) = _uav_pos;
-    _z_l.block<3,1>(3,0) = _uav_vel;
     if( _first_meas && _uav_pos[2] >= 1.0 ) {
 
         ROS_INFO("Take-Off completed. Kalman filter init.");
@@ -133,6 +132,11 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     }
     }
 
+    if( _killed ) {
+
+    }
+    // _z_l.block<3,1>(0,0) = _uav_pos;
+    // _z_l.block<3,1>(3,0) = _uav_vel;
     _lio_odom_msg_received = true;
 }   
 
@@ -141,7 +145,9 @@ void AKF_ros::second_odom_cb( const nav_msgs::Odometry so_msg ) {
     _pose_gt << so_msg.pose.pose.position.x, so_msg.pose.pose.position.y, so_msg.pose.pose.position.z;
     
     _vel_gt << so_msg.twist.twist.linear.x, so_msg.twist.twist.linear.y, so_msg.twist.twist.linear.z;
-    
+
+    _quat_gt << so_msg.pose.pose.orientation.x, so_msg.pose.pose.orientation.y, so_msg.pose.pose.orientation.z, so_msg.pose.pose.orientation.w; 
+    _frame_gt = so_msg.header.frame_id;
     _z_v.block<3,1>(0,0) = _pose_gt;
     _z_v.block<3,1>(3,0) = _vel_gt;
     _ii_odom_msg_received = true;
@@ -326,6 +332,8 @@ void AKF_ros::fusion_loop() {
             odom_out_msg.twist.twist.linear.x = x_u[3];
             odom_out_msg.twist.twist.linear.y = x_u[4];
             odom_out_msg.twist.twist.linear.z = x_u[5];
+
+            /*TODO: control after re-initialization*/
 
             _robot_est.publish(odom_out_msg);
         }
@@ -599,6 +607,8 @@ void AKF_ros::fusion_loop_2d() {
 void AKF_ros::monitor_LIO() {
     ros::Rate r( 10 );
 
+    static tf2_ros::StaticTransformBroadcaster new_init_broadcaster;
+    geometry_msgs::TransformStamped new_init_tf;
     while( ros::ok() ) {
 
         if( _takeoff_done ) {
@@ -606,21 +616,49 @@ void AKF_ros::monitor_LIO() {
             if( sqrt(pow(_uav_pos[0]-_pose_gt[0],2) + pow(_uav_pos[1]-_pose_gt[1],2)) > _dist_th && !_dist_max ) {
                 _dist_max = true;
                 _t1 = ros::Time::now();
-                std::cout<<sqrt(pow(_uav_pos[0]-_pose_gt[0],2) + pow(_uav_pos[1]-_pose_gt[1],2))<<"\n";
+                // std::cout<<sqrt(pow(_uav_pos[0]-_pose_gt[0],2) + pow(_uav_pos[1]-_pose_gt[1],2))<<"\n";
+                // ROS_INFO( "If for check position" );
             }
             if( sqrt(pow(_uav_pos[0]-_pose_gt[0],2) + pow(_uav_pos[1]-_pose_gt[1],2)) <= _dist_th ) {
                 _dist_max = false;
+                // ROS_INFO( "If to go back if the position is good" );
             }
             _t2 = ros::Time::now();
-            if( (_t2 - _t1).toSec() > _time_th && _dist_max ) {
+            if( (_t2 - _t1).toSec() > _time_th && _dist_max && !_killed ) {
                 ROS_ERROR( "Killing the node %s!", _node_name.c_str() );
 
                 std::string kill_cmd = "rosnode kill "+ _node_name;
-                system( kill_cmd.c_str() );
+                int kk = system( kill_cmd.c_str() );
 
                 ros::Duration(3.0).sleep();
 
                 ROS_INFO( "Node %s killed", _node_name.c_str() );
+                _dist_max = true;
+                _killed = true;
+            }
+
+            if( _killed && _dist_max ) {
+                ROS_WARN( "Node re-initialization." );
+                /**/
+                new_init_tf.header.stamp = ros::Time::now();
+                new_init_tf.header.frame_id = "uav1/local_origin";
+                new_init_tf.child_frame_id = "new_lio_init";
+                new_init_tf.transform.translation.x = _pose_gt[0];
+                new_init_tf.transform.translation.y = _pose_gt[1];
+                new_init_tf.transform.translation.z = _pose_gt[2];
+                new_init_tf.transform.rotation.x = _quat_gt[0];
+                new_init_tf.transform.rotation.y = _quat_gt[1];
+                new_init_tf.transform.rotation.z = _quat_gt[2];
+                new_init_tf.transform.rotation.w = _quat_gt[3];
+
+                new_init_broadcaster.sendTransform(new_init_tf);
+
+                /**/
+                std::vector<double> vec = {1.0, 2.0, 3.0};
+                std::string restart_cmd = "roslaunch point_lio mapping_ouster64_simu.launch new_frame:=new_lio_init new_x:="+std::to_string(_pose_gt[0])
+                                            +" new_y:="+std::to_string(_pose_gt[1])+" new_z:="+std::to_string(_pose_gt[2]);
+                int ll = system( restart_cmd.c_str() );
+                _killed = false;
             }
         }
 
