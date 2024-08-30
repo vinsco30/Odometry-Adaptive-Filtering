@@ -44,13 +44,25 @@ AKF_ros::AKF_ros() {
     _nh.getParam( "q_l_meas_bad", _q_l_meas_bad );
     _nh.getParam( "r_l_bad", _r_l_bad );
 
+    if( !_nh.getParam( "first_odom_topic_name", _first_odom_topic_name ) ) {
+        _first_odom_topic_name = "/aft_mapped_to_init";
+    }
+    if( !_nh.getParam( "second_odom_topic_name", _second_odom_topic_name ) ) {
+        _second_odom_topic_name = "/uav1/hw_api/odometry";
+    }
+    if( !_nh.getParam( "first_ekf_eig_topic_name", _first_ekf_eig_topic_name ) ) {
+        _first_ekf_eig_topic_name = "/point_lio/eig";
+    }
+    if( !_nh.getParam( "cmd_acc_topic_name", _cmd_acc_topic_name ) ) {
+        _cmd_acc_topic_name = "/uav1/control_manager/estimator_input";
+    }
 
     //---Inputs
-    _lio_odom_sub = _nh.subscribe<nav_msgs::Odometry>( "/aft_mapped_to_init", 1, &AKF_ros::LIO_cb, this );
-    _acc_ctrl_sub = _nh.subscribe<mrs_msgs::EstimatorInput>( "/uav1/control_manager/estimator_input", 1, &AKF_ros::ctrl_acc_cb, this );
+    _lio_odom_sub = _nh.subscribe<nav_msgs::Odometry>( _first_odom_topic_name.c_str(), 1, &AKF_ros::LIO_cb, this );
+    _acc_ctrl_sub = _nh.subscribe<mrs_msgs::EstimatorInput>( _cmd_acc_topic_name.c_str(), 1, &AKF_ros::ctrl_acc_cb, this );
     // _ref_ctrl_sub = _nh.subscribe<nav_msgs::Odometry>( "/uav1/control_manager/control_reference", 1, &AKF_ros::ctrl_ref_cb, this );
-    _eig_sub = _nh.subscribe<std_msgs::Float32MultiArray>( "/point_lio/eig", 1, &AKF_ros::eig_cb, this );
-    _second_source_sub = _nh.subscribe<nav_msgs::Odometry>( "/uav1/hw_api/odometry", 1, &AKF_ros::second_odom_cb, this );
+    _eig_sub = _nh.subscribe<std_msgs::Float32MultiArray>( _first_ekf_eig_topic_name.c_str(), 1, &AKF_ros::eig_cb, this );
+    _second_source_sub = _nh.subscribe<nav_msgs::Odometry>( _second_odom_topic_name.c_str(), 1, &AKF_ros::second_odom_cb, this );
     _points_sub = _nh.subscribe<std_msgs::UInt16>( "/point_lio/n_points", 1, &AKF_ros::points_cb, this );
     _trace_sub = _nh.subscribe<std_msgs::Float32>( "/point_lio/trace", 1, &AKF_ros::trace_cb, this );
 
@@ -83,6 +95,8 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     _uav_quat << lio_msg.pose.pose.orientation.w, lio_msg.pose.pose.orientation.x, lio_msg.pose.pose.orientation.y, lio_msg.pose.pose.orientation.z;
     _uav_vel << lio_msg.twist.twist.linear.x, lio_msg.twist.twist.linear.y, lio_msg.twist.twist.linear.z;
     _uav_ang_vel << lio_msg.twist.twist.angular.x, lio_msg.twist.twist.angular.y, lio_msg.twist.twist.angular.z;
+
+    // std::cout<<_uav_pos[0]<<", "<<_uav_pos[1]<<", "<<_uav_pos[2]<<"\n";
 
     if( _first_meas && _uav_pos[2] >= 1.0 ) {
 
@@ -132,11 +146,11 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     }
     }
 
-    if( _killed ) {
+    // if( _killed ) {
 
-    }
-    // _z_l.block<3,1>(0,0) = _uav_pos;
-    // _z_l.block<3,1>(3,0) = _uav_vel;
+    // }
+    _z_l.block<3,1>(0,0) = _uav_pos;
+    _z_l.block<3,1>(3,0) = _uav_vel;
     _lio_odom_msg_received = true;
 }   
 
@@ -157,6 +171,7 @@ void AKF_ros::ctrl_acc_cb( const mrs_msgs::EstimatorInput ref_acc ) {
 
     _cmd_acc << ref_acc.control_acceleration.x, ref_acc.control_acceleration.y, ref_acc.control_acceleration.z;
     _new_ctrl_acc = true;
+    // std::cout<<_cmd_acc[0]<<", "<<_cmd_acc[1]<<", "<<_cmd_acc[2]<<"\n";
 }
 
 void AKF_ros::eig_cb( const std_msgs::Float32MultiArray eig_msg ) {
@@ -562,6 +577,7 @@ void AKF_ros::fusion_loop_2d() {
             }
             z_l_2d << _z_l.block<2,1>(0,0), _z_l.block<2,1>(3,0);
             z_v_2d << _z_v.block<2,1>(0,0), _z_v.block<2,1>(3,0);
+            // std::cout<<"z_l_2d = "<<z_l_2d[0]<<", "<<z_l_2d[1]<<"\n z_v_2d = "<<z_v_2d[0]<<", "<<z_v_2d[1]<<"\n\n";
             if( _lio_odom_msg_received /*&& _eig_received*/) {
                 _eig_received=false;
                 _lio_odom_msg_received=false;

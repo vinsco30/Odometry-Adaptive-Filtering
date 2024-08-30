@@ -123,4 +123,10 @@ class AKF_ros {
         double _time_th;
         std::string _node_name;
 
+        /*Parameters for inputs*/
+        std::string _first_odom_topic_name;
+        std::string _second_odom_topic_name;
+        std::string _first_ekf_eig_topic_name;
+        std::string _cmd_acc_topic_name;
+
 };

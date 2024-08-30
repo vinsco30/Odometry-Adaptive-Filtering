@@ -1,3 +1,8 @@
+first_odom_topic_name: /aft_mapped_to_init
+second_odom_topic_name: /uav1/hw_api/odometry
+first_ekf_eig_topic_name: /point_lio/eig
+cmd_acc_topic_name: /uav1/control_manager/estimator_input
+
 num_states: 21
 num_inputs: 6
 tau: 0.1
