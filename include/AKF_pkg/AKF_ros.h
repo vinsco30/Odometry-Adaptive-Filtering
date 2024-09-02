@@ -114,13 +114,15 @@ class AKF_ros {
         std::vector<double> _kx;
         std::vector<double> _ky;
         std::vector<double> _kz;
-        std::vector<double> _epsilon;
+        std::vector<double> _epsilon_sup;
+        std::vector<double> _epsilon_inf;
         std::vector<double> _q_v_meas_l_ok;
         std::vector<double> _r_l_bad;
         std::vector<double> _q_l_meas_bad;
         bool _debug;
         double _dist_th;
         double _time_th;
+        bool _do_reboot;
         std::string _node_name;
 
         /*Parameters for inputs*/

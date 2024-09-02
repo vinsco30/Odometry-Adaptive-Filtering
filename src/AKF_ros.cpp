@@ -26,6 +26,9 @@ AKF_ros::AKF_ros() {
     if( !_nh.getParam("debug", _debug) ) {
         _debug = false;
     } 
+    if( !_nh.getParam("recovery", _do_reboot) ) {
+        _do_reboot = false;
+    } 
     if( !_nh.getParam("dist_threshold", _dist_th ) ) {
         _dist_th = 1.0;
     }
@@ -39,7 +42,8 @@ AKF_ros::AKF_ros() {
     _nh.getParam( "kx", _kx );
     _nh.getParam( "ky", _ky );
     _nh.getParam( "kz", _kz );
-    _nh.getParam( "epsilon", _epsilon );
+    _nh.getParam( "epsilon_bad", _epsilon_sup );
+    _nh.getParam( "epsilon_ok", _epsilon_inf );
     _nh.getParam( "q_v_meas_l_ok", _q_v_meas_l_ok );
     _nh.getParam( "q_l_meas_bad", _q_l_meas_bad );
     _nh.getParam( "r_l_bad", _r_l_bad );
@@ -110,33 +114,33 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     if( _takeoff_done ) {
     //x
     // std::cout<<_meas_l_ok[0]<<"\n";
-    if( !_meas_l_ok[0] && _eig_xyz[0] > _lambda_x+_epsilon[0]+12 ) {
+    if( !_meas_l_ok[0] && _eig_xyz[0] > _lambda_x+_epsilon_sup[0] ) {
         ROS_WARN("Meas x OK after");
         _meas_l_ok[0] = true;
         _q_change_ok[0] = false;
         _rq_change_bad[0] = false;
         _state_x=false;
     }
-    else if( _meas_l_ok[0] && _eig_xyz[0] < _lambda_x+_epsilon[0]+5 ) {
+    else if( _meas_l_ok[0] && _eig_xyz[0] < _lambda_x+_epsilon_inf[0] ) {
         _meas_l_ok[0] = false;
         ROS_ERROR("Meas x BAD");
         _state_x = true;
     }
     //y
-    if( !_meas_l_ok[1] && _eig_xyz[1] > _lambda_y+_epsilon[1]+10 ) {
+    if( !_meas_l_ok[1] && _eig_xyz[1] > _lambda_y+_epsilon_sup[1] ) {
         ROS_WARN("Meas y OK after");
         _meas_l_ok[1] = true;
         _q_change_ok[1] = false;
         _rq_change_bad[1] = false;
         _state_y = false;
     }
-    else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y+_epsilon[1]+4 ) {
+    else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y+_epsilon_inf[1] ) {
         _meas_l_ok[1] = false;
          ROS_ERROR("Meas y BAD");
         _state_y = true;
     }
     //z
-    if( !_meas_l_ok[2] && _eig_xyz[2] > _lambda_z+_epsilon[2] ) {
+    if( !_meas_l_ok[2] && _eig_xyz[2] > _lambda_z+_epsilon_sup[2] ) {
         _meas_l_ok[2] = true;
         _q_change_ok[2] = false;
         _rq_change_bad[2] = false;
@@ -684,7 +688,8 @@ void AKF_ros::monitor_LIO() {
 }
 void AKF_ros::run() {
     boost::thread check_drift_t( &AKF_ros::fusion_loop_2d, this );
-    boost::thread monitor_lio_t( &AKF_ros::monitor_LIO, this );
+    if( _do_reboot )
+        boost::thread monitor_lio_t( &AKF_ros::monitor_LIO, this );
     ros::spin();
 }
 
