@@ -1,5 +1,6 @@
 first_odom_topic_name: /aft_mapped_to_init
-second_odom_topic_name: /uav1/hw_api/odometry
+#second_odom_topic_name: /uav1/hw_api/odometry
+second_odom_topic_name: /uav1/vins_republisher/odom
 first_ekf_eig_topic_name: /point_lio/eig
 cmd_acc_topic_name: /uav1/control_manager/estimator_input
 
@@ -13,8 +14,8 @@ lambda_z: 186.9483
 kx: [10.6, 11]
 ky: [10.4, 11]
 kz: [186.9, 187.4]
-epsilon_bad: [14, 12, 0.5]
-epsilon_ok: [7, 6, 0.5]
+epsilon_bad: [15, 15, 0.5]
+epsilon_ok: [8, 7, 0.5]
 q_v_meas_l_ok: [1.0E+4, 1.0E+4, 1.0E+3]
 q_l_meas_bad: [1.0E+9, 1.0E+9, 1.0E+6]
 r_l_bad: [1.0E+8, 1.0E+8, 1.0E+5]

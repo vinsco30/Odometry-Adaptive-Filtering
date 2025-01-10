@@ -110,6 +110,8 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         _takeoff_done=true;
 
     }
+
+
     /*Hysteresis*/
     if( _takeoff_done ) {
     //x
@@ -119,12 +121,12 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         _meas_l_ok[0] = true;
         _q_change_ok[0] = false;
         _rq_change_bad[0] = false;
-        _state_x=false;
+        _state_x=0;
     }
     else if( _meas_l_ok[0] && _eig_xyz[0] < _lambda_x+_epsilon_inf[0] ) {
         _meas_l_ok[0] = false;
         ROS_ERROR("Meas x BAD");
-        _state_x = true;
+        _state_x = 30;
     }
     //y
     if( !_meas_l_ok[1] && _eig_xyz[1] > _lambda_y+_epsilon_sup[1] ) {
@@ -132,12 +134,12 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         _meas_l_ok[1] = true;
         _q_change_ok[1] = false;
         _rq_change_bad[1] = false;
-        _state_y = false;
+        _state_y = 0;
     }
     else if( _meas_l_ok[1] && _eig_xyz[1] < _lambda_y+_epsilon_inf[1] ) {
         _meas_l_ok[1] = false;
          ROS_ERROR("Meas y BAD");
-        _state_y = true;
+        _state_y = 30;
     }
     //z
     if( !_meas_l_ok[2] && _eig_xyz[2] > _lambda_z+_epsilon_sup[2] ) {
@@ -509,7 +511,8 @@ void AKF_ros::fusion_loop_2d() {
 
         if( _init_kf ) {
             _init_kf = false;
-            x_p << _uav_pos[0], _uav_pos[1], _uav_vel[0], _uav_vel[1];
+            x_p << _uav_pos[0], _uav_pos[1], _uav_vel[0], _uav_vel[1], 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0; //Questo è il comando che fotte tutto
             x_u = x_p;
             ROS_INFO("Kalman filter's states initialized!");
 
@@ -524,7 +527,7 @@ void AKF_ros::fusion_loop_2d() {
                     if_first_update_x = false;   
                 }
                 else {
-                    ROS_ERROR("I go back to the oldest covariances.");
+                    ROS_WARN("I go back to the oldest covariances for X.");
                     Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
                     Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0]; 
                     R_l(0,0) = R_l(0,0)*1/_r_l_bad[0];
@@ -544,6 +547,7 @@ void AKF_ros::fusion_loop_2d() {
 
                 }
                 else {
+                    ROS_WARN("I go back to the oldest covariances for X.");
                     R_l(1,1) = R_l(1,1)*1/_r_l_bad[1];
                     R_l(3,3) = R_l(3,3)*1/_r_l_bad[1];
                     Q(7,7) = Q(7,7)*1/_q_l_meas_bad[1];
@@ -601,11 +605,25 @@ void AKF_ros::fusion_loop_2d() {
                 P_u = (Eigen::Matrix<double,14,14>::Identity() - K * H_V) * P_p;
             }
         }
+        odom_out_msg.header.stamp = ros::Time::now();
+        odom_out_msg.header.frame_id = "uav1/vio_origin";
+        odom_out_msg.child_frame_id = "AKF_odom";
         odom_out_msg.pose.pose.position.x = x_u[0];
         odom_out_msg.pose.pose.position.y = x_u[1];
         odom_out_msg.twist.twist.linear.x = x_u[2];
         odom_out_msg.twist.twist.linear.y = x_u[3];
+        odom_out_msg.pose.pose.position.z = _pose_gt[2];
+        // odom_out_msg.twist.twist.linear.z = _vel_gt[2];
+        odom_out_msg.pose.pose.orientation.w = _uav_quat[0];
+        odom_out_msg.pose.pose.orientation.x = _uav_quat[1];
+        odom_out_msg.pose.pose.orientation.y = _uav_quat[2];
+        odom_out_msg.pose.pose.orientation.z = _uav_quat[3];
+        // odom_out_msg.twist.twist.angular.x = _uav_ang_vel[0];
+        // odom_out_msg.twist.twist.angular.y = _uav_ang_vel[1];
+        // odom_out_msg.twist.twist.angular.z = _uav_ang_vel[2];
 
+        // state_x.header.stamp = ros::Time::now();
+        // state_y.header.stamp = ros::Time::now();
         state_x.data = _state_x;
         state_y.data = _state_y;
 
