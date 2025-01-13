@@ -2,7 +2,7 @@ clear
 close all
 clc
 
-bag = rosbag("thesis/forest_to_of5.bag");
+bag = rosbag("revised_bag/test_100125_1455.bag");
 bSel = select(bag,'Topic','/aft_mapped_to_init');
 bSel1 = select(bag,'Topic','/uav1/hw_api/odometry');
 bSel2 = select(bag,'Topic','/AKF/odom');
