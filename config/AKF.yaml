@@ -11,9 +11,9 @@ tau: 0.1
 Delta_t: 0.01
 
 lambda_xyz_lio: [10.6386, 11.4496, 186.9483]
-lambda_xyz_vio: [100, 100, 100]
+lambda_xyz_vio: [0, 0, 0]
 
-epsilon_bad_vio: [15, 15, 0.5]
+epsilon_bad_vio: [0, 0, 0]
 epsilon_ok_vio: [8, 7, 0.5]
 epsilon_bad_lio: [15, 15, 0.5]
 epsilon_ok_lio: [8, 7, 0.5]

@@ -170,25 +170,25 @@ void AKF_ros::VIO_cb( const nav_msgs::Odometry so_msg ) {
     // std::cout<<_meas_v_ok[0]<<"\n";
     // std::cout<<(_eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0])<<"\n";
     if( !_meas_v_ok[0] && _eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0] ) {
-        ROS_WARN("Meas x OK VIO after");
+        // ROS_WARN("Meas x OK VIO after");
         _meas_v_ok[0] = true;
         _q_lio_change_ok[0] = false;
         // _rq_change_bad[0] = false;
     }
     else if( _meas_v_ok[0] && _eigV_xyz[0] < _lambda_xyz_vio[0]+_epsilon_ok_vio[0] ) {
         _meas_v_ok[0] = false;
-        ROS_ERROR("Meas x VIO BAD");
+        // ROS_ERROR("Meas x VIO BAD");
     }
     //y
     if( !_meas_v_ok[1] && _eigV_xyz[1] > _lambda_xyz_vio[1]+_epsilon_bad_vio[1] ) {
-        ROS_WARN("Meas y OK VIO after");
+        // ROS_WARN("Meas y OK VIO after");
         _meas_v_ok[1] = true;
         _q_vio_change_ok[1] = false;
         // _rq_change_bad[1] = false;
     }
     else if( _meas_v_ok[1] && _eigV_xyz[1] < _lambda_xyz_vio[1]+_epsilon_ok_vio[1] ) {
         _meas_v_ok[1] = false;
-         ROS_ERROR("Meas y VIO BAD");
+        //  ROS_ERROR("Meas y VIO BAD");
     }
     //z
     if( !_meas_v_ok[2] && _eigV_xyz[2] > _lambda_xyz_vio[2]+_epsilon_bad_vio[2] ) {
@@ -612,7 +612,7 @@ void AKF_ros::fusion_loop_2d() {
                 // }
 
                 _q_vio_change_ok[0] = true;
-                ROS_WARN("Good X VIO meas. Priority to LIO");
+                // ROS_WARN("Good X VIO meas. Priority to LIO");
             }
             if( _meas_l_ok[1] && !_q_lio_change_ok[1] ) {
                 if( if_first_update_y ) {
