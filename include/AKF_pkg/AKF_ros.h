@@ -134,11 +134,14 @@ class AKF_ros {
         std::vector<double> _q_v_meas_l_ok;
         std::vector<double> _r_l_bad;
         std::vector<double> _q_l_meas_bad;
+        bool _debug_VIO;
+        bool _debug_LIO;
         bool _debug;
         double _dist_th;
         double _time_th;
         bool _do_reboot;
         std::string _node_name;
+
 
         /*Parameters for inputs*/
         std::string _first_odom_topic_name;

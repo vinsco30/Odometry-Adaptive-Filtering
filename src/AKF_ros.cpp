@@ -14,6 +14,12 @@ AKF_ros::AKF_ros() {
     if( !_nh.getParam("Delta_t", _Dt) ) {
         _Dt = 0.01;
     }   
+    if( !_nh.getParam("debug_LIO", _debug_LIO) ) {
+        _debug_LIO = false;
+    } 
+    if( !_nh.getParam("debug_VIO", _debug_VIO) ) {
+        _debug_VIO = false;
+    } 
     if( !_nh.getParam("debug", _debug) ) {
         _debug = false;
     } 
@@ -114,7 +120,8 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     //x
     // std::cout<<_meas_l_ok[0]<<"\n";
     if( !_meas_l_ok[0] && _eigL_xyz[0] > _lambda_xyz_lio[0]+_epsilon_bad_lio[0] ) {
-        ROS_WARN("Meas x LIO OK after");
+        if( _debug_LIO )
+            ROS_WARN("Meas x LIO OK after");
         _meas_l_ok[0] = true;
         _q_lio_change_ok[0] = false;
         _rq_change_bad[0] = false;
@@ -122,12 +129,14 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     }
     else if( _meas_l_ok[0] && _eigL_xyz[0] < _lambda_xyz_lio[0]+_epsilon_ok_lio[0] ) {
         _meas_l_ok[0] = false;
-        ROS_ERROR("Meas x LIO BAD");
+        if( _debug_LIO )
+            ROS_ERROR("Meas x LIO BAD");
         _state_x = 30;
     }
     //y
     if( !_meas_l_ok[1] && _eigL_xyz[1] > _lambda_xyz_lio[1]+_epsilon_bad_lio[1] ) {
-        ROS_WARN("Meas y OK LIO after");
+        if( _debug_LIO )
+            ROS_WARN("Meas y OK LIO after");
         _meas_l_ok[1] = true;
         _q_lio_change_ok[1] = false;
         _rq_change_bad[1] = false;
@@ -135,7 +144,8 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     }
     else if( _meas_l_ok[1] && _eigL_xyz[1] < _lambda_xyz_lio[1]+_epsilon_ok_lio[1] ) {
         _meas_l_ok[1] = false;
-         ROS_ERROR("Meas y LIO BAD");
+        if( _debug_LIO )
+            ROS_ERROR("Meas y LIO BAD");
         _state_y = 30;
     }
     //z
@@ -169,26 +179,30 @@ void AKF_ros::VIO_cb( const nav_msgs::Odometry so_msg ) {
     //x
     // std::cout<<_meas_v_ok[0]<<"\n";
     // std::cout<<(_eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0])<<"\n";
-    if( !_meas_v_ok[0] && _eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0] ) {
-        // ROS_WARN("Meas x OK VIO after");
+    if( !_meas_v_ok[0] && _eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0]-10 ) {
+        if( _debug_VIO )
+            ROS_WARN("Meas x OK VIO after");
         _meas_v_ok[0] = true;
         _q_lio_change_ok[0] = false;
         // _rq_change_bad[0] = false;
     }
-    else if( _meas_v_ok[0] && _eigV_xyz[0] < _lambda_xyz_vio[0]+_epsilon_ok_vio[0] ) {
+    else if( _meas_v_ok[0] && _eigV_xyz[0] < _lambda_xyz_vio[0]+_epsilon_ok_vio[0]-30 ) {
         _meas_v_ok[0] = false;
-        // ROS_ERROR("Meas x VIO BAD");
+        if( _debug_VIO )
+            ROS_ERROR("Meas x VIO BAD");
     }
     //y
-    if( !_meas_v_ok[1] && _eigV_xyz[1] > _lambda_xyz_vio[1]+_epsilon_bad_vio[1] ) {
-        // ROS_WARN("Meas y OK VIO after");
+    if( !_meas_v_ok[1] && _eigV_xyz[1] > _lambda_xyz_vio[1]+_epsilon_bad_vio[1]-10 ) {
+        if( _debug_VIO )
+            ROS_WARN("Meas y OK VIO after");
         _meas_v_ok[1] = true;
         _q_vio_change_ok[1] = false;
         // _rq_change_bad[1] = false;
     }
-    else if( _meas_v_ok[1] && _eigV_xyz[1] < _lambda_xyz_vio[1]+_epsilon_ok_vio[1] ) {
+    else if( _meas_v_ok[1] && _eigV_xyz[1] < _lambda_xyz_vio[1]+_epsilon_ok_vio[1]-30 ) {
         _meas_v_ok[1] = false;
-        //  ROS_ERROR("Meas y VIO BAD");
+        if( _debug_VIO )
+            ROS_ERROR("Meas y VIO BAD");
     }
     //z
     if( !_meas_v_ok[2] && _eigV_xyz[2] > _lambda_xyz_vio[2]+_epsilon_bad_vio[2] ) {
@@ -582,7 +596,8 @@ void AKF_ros::fusion_loop_2d() {
                     if_first_update_x = false;   
                 }
                 else {
-                    ROS_WARN("I go back to the oldest covariances for X.");
+                    if( _debug_LIO )
+                        ROS_WARN("I go back to the oldest covariances for X LIO.");
                     Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
                     Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0]; 
                     R_l(0,0) = R_l(0,0)*1/_r_l_bad[0];
@@ -592,7 +607,8 @@ void AKF_ros::fusion_loop_2d() {
                 }
 
                 _q_lio_change_ok[0] = true;
-                ROS_WARN("Good X LIO meas. Update offset VIO");
+                if( _debug_LIO )
+                    ROS_WARN("Good X LIO meas. Update offset VIO");
             }
             /*CAMERA check X*/
             if( _meas_v_ok[0] && !_q_vio_change_ok[0] ) {
@@ -622,7 +638,8 @@ void AKF_ros::fusion_loop_2d() {
 
                 }
                 else {
-                    ROS_WARN("I go back to the oldest covariances for X.");
+                    if( _debug_LIO )
+                        ROS_WARN("I go back to the oldest covariances for X.");
                     R_l(1,1) = R_l(1,1)*1/_r_l_bad[1];
                     R_l(3,3) = R_l(3,3)*1/_r_l_bad[1];
                     Q(7,7) = Q(7,7)*1/_q_l_meas_bad[1];
@@ -632,7 +649,8 @@ void AKF_ros::fusion_loop_2d() {
                 }
 
                 _q_lio_change_ok[1] = true;
-                ROS_WARN("Good Y LIO meas. Update offset VIO");
+                if( _debug_LIO )    
+                    ROS_WARN("Good Y LIO meas. Update offset VIO");
             }
 
             x_p = A*x_u + B*u;
@@ -643,9 +661,10 @@ void AKF_ros::fusion_loop_2d() {
                 R_l(2,2) = R_l(2,2)*_r_l_bad[0];
                 Q(6,6) = Q(6,6)*_q_l_meas_bad[0];
                 Q(8,8) = Q(8,8)*_q_l_meas_bad[0];
-                ROS_WARN("Update cov for LIO X");
                 Q(10,10) = Q(10,10)*1/_q_v_meas_l_ok[0];
                 Q(12,12) = Q(12,12)*1/_q_v_meas_l_ok[0];
+                if( _debug_LIO )
+                    ROS_WARN("Update cov for LIO X");
                 _rq_change_bad[0] = true;
             }
             if( !_meas_l_ok[1] && !_rq_change_bad[1]){
@@ -653,9 +672,10 @@ void AKF_ros::fusion_loop_2d() {
                 R_l(3,3) = R_l(3,3)*_r_l_bad[1];
                 Q(7,7) = Q(7,7)*_q_l_meas_bad[1];
                 Q(9,9) = Q(9,9)*_q_l_meas_bad[1];
-                ROS_WARN("Update cov for LIO Y");
                 Q(11,11) = Q(11,11)*1/_q_v_meas_l_ok[1];
                 Q(13,13) = Q(13,13)*1/_q_v_meas_l_ok[1];
+                if( _debug_LIO )
+                    ROS_WARN("Update cov for LIO Y");
                 _rq_change_bad[1] = true;
             }
             z_l_2d << _z_l.block<2,1>(0,0), _z_l.block<2,1>(3,0);
