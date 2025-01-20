@@ -11,12 +11,13 @@ tau: 0.1
 Delta_t: 0.01
 
 lambda_xyz_lio: [10.6386, 11.4496, 186.9483]
-lambda_xyz_vio: [39.7562, 40.4794, 308.7466]
+#lambda_xyz_vio: [39.7562, 40.4794, 308.7466]
+lambda_xyz_vio: [5.0, 5.0, 308.7466]
 
-epsilon_bad_vio: [15, 15, 0.5]
-epsilon_ok_vio: [8, 7, 0.5]
-epsilon_bad_lio: [15, 15, 0.5]
-epsilon_ok_lio: [8, 7, 0.5]
+epsilon_bad_vio: [10, 10, 0.5]
+epsilon_ok_vio: [0.0, 0.0, 0.5]
+epsilon_bad_lio: [30, 30, 0.5]
+epsilon_ok_lio: [8, 8, 0.5]
 
 kx: [10.6, 11]
 ky: [10.4, 11]
@@ -27,7 +28,8 @@ q_l_meas_bad: [1.0E+9, 1.0E+9, 1.0E+6]
 r_l_bad: [1.0E+8, 1.0E+8, 1.0E+5]
 r_v_bad: [1.0E+8, 1.0E+8, 1.0E+5]
 
-recovery: false
+dist_threshold: 10.0
+recovery: true
 debug: false
 debug_VIO: true
-debug_LIO: false
+debug_LIO: true

@@ -179,27 +179,27 @@ void AKF_ros::VIO_cb( const nav_msgs::Odometry so_msg ) {
     //x
     // std::cout<<_meas_v_ok[0]<<"\n";
     // std::cout<<(_eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0])<<"\n";
-    if( !_meas_v_ok[0] && _eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0]-10 ) {
+    if( !_meas_v_ok[0] && _eigV_xyz[0] > _lambda_xyz_vio[0]+_epsilon_bad_vio[0] ) {
         if( _debug_VIO )
             ROS_WARN("Meas x OK VIO after");
         _meas_v_ok[0] = true;
         _q_lio_change_ok[0] = false;
         // _rq_change_bad[0] = false;
     }
-    else if( _meas_v_ok[0] && _eigV_xyz[0] < _lambda_xyz_vio[0]+_epsilon_ok_vio[0]-30 ) {
+    else if( _meas_v_ok[0] && _eigV_xyz[0] < _lambda_xyz_vio[0]+_epsilon_ok_vio[0] ) {
         _meas_v_ok[0] = false;
         if( _debug_VIO )
             ROS_ERROR("Meas x VIO BAD");
     }
     //y
-    if( !_meas_v_ok[1] && _eigV_xyz[1] > _lambda_xyz_vio[1]+_epsilon_bad_vio[1]-10 ) {
+    if( !_meas_v_ok[1] && _eigV_xyz[1] > _lambda_xyz_vio[1]+_epsilon_bad_vio[1] ) {
         if( _debug_VIO )
             ROS_WARN("Meas y OK VIO after");
         _meas_v_ok[1] = true;
         _q_vio_change_ok[1] = false;
         // _rq_change_bad[1] = false;
     }
-    else if( _meas_v_ok[1] && _eigV_xyz[1] < _lambda_xyz_vio[1]+_epsilon_ok_vio[1]-30 ) {
+    else if( _meas_v_ok[1] && _eigV_xyz[1] < _lambda_xyz_vio[1]+_epsilon_ok_vio[1] ) {
         _meas_v_ok[1] = false;
         if( _debug_VIO )
             ROS_ERROR("Meas y VIO BAD");
@@ -575,6 +575,9 @@ void AKF_ros::fusion_loop_2d() {
     std_msgs::Bool state_y;
     bool if_first_update_x = true;
     bool if_first_update_y = true;
+    int cnt_x, cnt_y;
+    bool bad_x, bad_y;
+
     while( ros::ok() ) {
 
         if( _init_kf ) {
@@ -611,25 +614,25 @@ void AKF_ros::fusion_loop_2d() {
                     ROS_WARN("Good X LIO meas. Update offset VIO");
             }
             /*CAMERA check X*/
-            if( _meas_v_ok[0] && !_q_vio_change_ok[0] ) {
-                // if( if_first_update_x ) {
-                //     // Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
-                //     // Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0];
-                //     // if_first_update_x = false;   
-                // }
-                // else {
-                //     ROS_WARN("I go back to the oldest covariances for X.");
-                //     // Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
-                //     // Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0]; 
-                //     // R_l(0,0) = R_l(0,0)*1/_r_l_bad[0];
-                //     // R_l(2,2) = R_l(2,2)*1/_r_l_bad[0];
-                //     // Q(6,6) = Q(6,6)*1/_q_l_meas_bad[0];
-                //     // Q(8,8) = Q(8,8)*1/_q_l_meas_bad[0];
-                // }
+            // if( _meas_v_ok[0] && !_q_vio_change_ok[0] ) {
+            //     if( if_first_update_x ) {
+            //         // Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
+            //         // Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0];
+            //         // if_first_update_x = false;   
+            //     }
+            //     else {
+            //         ROS_WARN("I go back to the oldest covariances for X.");
+            //         // Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];
+            //         // Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0]; 
+            //         // R_l(0,0) = R_l(0,0)*1/_r_l_bad[0];
+            //         // R_l(2,2) = R_l(2,2)*1/_r_l_bad[0];
+            //         // Q(6,6) = Q(6,6)*1/_q_l_meas_bad[0];
+            //         // Q(8,8) = Q(8,8)*1/_q_l_meas_bad[0];
+            //     }
 
-                _q_vio_change_ok[0] = true;
-                // ROS_WARN("Good X VIO meas. Priority to LIO");
-            }
+            //     _q_vio_change_ok[0] = true;
+            //     ROS_WARN("Good X VIO meas. Priority to LIO");
+            // }
             if( _meas_l_ok[1] && !_q_lio_change_ok[1] ) {
                 if( if_first_update_y ) {
                     Q(11,11) = Q(11,11)*_q_v_meas_l_ok[1];
@@ -657,26 +660,37 @@ void AKF_ros::fusion_loop_2d() {
             P_p = A*P_u*A.transpose() + _Dt*Q;
 
             if( !_meas_l_ok[0] && !_rq_change_bad[0]){
-                R_l(0,0) = R_l(0,0)*_r_l_bad[0];
-                R_l(2,2) = R_l(2,2)*_r_l_bad[0];
-                Q(6,6) = Q(6,6)*_q_l_meas_bad[0];
-                Q(8,8) = Q(8,8)*_q_l_meas_bad[0];
-                Q(10,10) = Q(10,10)*1/_q_v_meas_l_ok[0];
-                Q(12,12) = Q(12,12)*1/_q_v_meas_l_ok[0];
-                if( _debug_LIO )
-                    ROS_WARN("Update cov for LIO X");
-                _rq_change_bad[0] = true;
+                if( _meas_v_ok[0] ) {
+                    R_l(0,0) = R_l(0,0)*_r_l_bad[0];
+                    R_l(2,2) = R_l(2,2)*_r_l_bad[0];
+                    Q(6,6) = Q(6,6)*_q_l_meas_bad[0];
+                    Q(8,8) = Q(8,8)*_q_l_meas_bad[0];
+                    Q(10,10) = Q(10,10)*1/_q_v_meas_l_ok[0];
+                    Q(12,12) = Q(12,12)*1/_q_v_meas_l_ok[0];
+                    if( _debug_LIO )
+                        ROS_WARN("Update cov for LIO X");
+                    _rq_change_bad[0] = true;
+                }
+                else {
+                    ROS_WARN("VIO X estimation not good enough --- Avoid switching");
+                }
+
             }
             if( !_meas_l_ok[1] && !_rq_change_bad[1]){
-                R_l(1,1) = R_l(1,1)*_r_l_bad[1];
-                R_l(3,3) = R_l(3,3)*_r_l_bad[1];
-                Q(7,7) = Q(7,7)*_q_l_meas_bad[1];
-                Q(9,9) = Q(9,9)*_q_l_meas_bad[1];
-                Q(11,11) = Q(11,11)*1/_q_v_meas_l_ok[1];
-                Q(13,13) = Q(13,13)*1/_q_v_meas_l_ok[1];
-                if( _debug_LIO )
-                    ROS_WARN("Update cov for LIO Y");
-                _rq_change_bad[1] = true;
+                if( _meas_v_ok[1] ) {
+                    R_l(1,1) = R_l(1,1)*_r_l_bad[1];
+                    R_l(3,3) = R_l(3,3)*_r_l_bad[1];
+                    Q(7,7) = Q(7,7)*_q_l_meas_bad[1];
+                    Q(9,9) = Q(9,9)*_q_l_meas_bad[1];
+                    Q(11,11) = Q(11,11)*1/_q_v_meas_l_ok[1];
+                    Q(13,13) = Q(13,13)*1/_q_v_meas_l_ok[1];
+                    if( _debug_LIO )
+                        ROS_WARN("Update cov for LIO Y");
+                    _rq_change_bad[1] = true;
+                }
+                else{
+                    ROS_WARN("VIO Y estimation not good enough --- Avoid switching");
+                }
             }
             z_l_2d << _z_l.block<2,1>(0,0), _z_l.block<2,1>(3,0);
             z_v_2d << _z_v.block<2,1>(0,0), _z_v.block<2,1>(3,0);
@@ -771,29 +785,29 @@ void AKF_ros::monitor_LIO() {
                 _killed = true;
             }
 
-            if( _killed && _dist_max ) {
-                ROS_WARN( "Node re-initialization." );
-                /**/
-                new_init_tf.header.stamp = ros::Time::now();
-                new_init_tf.header.frame_id = "uav1/local_origin";
-                new_init_tf.child_frame_id = "new_lio_init";
-                new_init_tf.transform.translation.x = _uav_pos_vio[0];
-                new_init_tf.transform.translation.y = _uav_pos_vio[1];
-                new_init_tf.transform.translation.z = _uav_pos_vio[2];
-                new_init_tf.transform.rotation.x = _quat_gt[0];
-                new_init_tf.transform.rotation.y = _quat_gt[1];
-                new_init_tf.transform.rotation.z = _quat_gt[2];
-                new_init_tf.transform.rotation.w = _quat_gt[3];
+            // if( _killed && _dist_max ) {
+            //     ROS_WARN( "Node re-initialization." );
+            //     /**/
+            //     new_init_tf.header.stamp = ros::Time::now();
+            //     new_init_tf.header.frame_id = "uav1/local_origin";
+            //     new_init_tf.child_frame_id = "new_lio_init";
+            //     new_init_tf.transform.translation.x = _uav_pos_vio[0];
+            //     new_init_tf.transform.translation.y = _uav_pos_vio[1];
+            //     new_init_tf.transform.translation.z = _uav_pos_vio[2];
+            //     new_init_tf.transform.rotation.x = _quat_gt[0];
+            //     new_init_tf.transform.rotation.y = _quat_gt[1];
+            //     new_init_tf.transform.rotation.z = _quat_gt[2];
+            //     new_init_tf.transform.rotation.w = _quat_gt[3];
 
-                new_init_broadcaster.sendTransform(new_init_tf);
+            //     new_init_broadcaster.sendTransform(new_init_tf);
 
-                /**/
-                std::vector<double> vec = {1.0, 2.0, 3.0};
-                std::string restart_cmd = "roslaunch point_lio mapping_ouster64_simu.launch new_frame:=new_lio_init new_x:="+std::to_string(_uav_pos_vio[0])
-                                            +" new_y:="+std::to_string(_uav_pos_vio[1])+" new_z:="+std::to_string(_uav_pos_vio[2]);
-                int ll = system( restart_cmd.c_str() );
-                _killed = false;
-            }
+            //     /**/
+            //     std::vector<double> vec = {1.0, 2.0, 3.0};
+            //     std::string restart_cmd = "roslaunch point_lio mapping_ouster64_simu.launch new_frame:=new_lio_init new_x:="+std::to_string(_uav_pos_vio[0])
+            //                                 +" new_y:="+std::to_string(_uav_pos_vio[1])+" new_z:="+std::to_string(_uav_pos_vio[2]);
+            //     int ll = system( restart_cmd.c_str() );
+            //     _killed = false;
+            // }
         }
 
         
