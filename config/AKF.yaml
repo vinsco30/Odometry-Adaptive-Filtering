@@ -1,8 +1,8 @@
-first_odom_topic_name: /aft_mapped_to_init
+first_odom_topic_name: /point_lio/odom
 # second_odom_topic_name: /uav1/hw_api/odometry
-second_odom_topic_name: /uav1/vins_republisher/odom
-first_ekf_eig_topic_name: /point_lio/eig
-second_ekf_eig_topic_name: /uav1/ov_msckf/eig
+second_odom_topic_name: /ov_msckf/odomimu
+first_ekf_eig_topic_name: /point_lio/eig2
+second_ekf_eig_topic_name: /ov_msckf/eig
 cmd_acc_topic_name: /uav1/control_manager/estimator_input
 
 num_states: 21
@@ -10,14 +10,14 @@ num_inputs: 6
 tau: 0.1
 Delta_t: 0.01
 
-lambda_xyz_lio: [10.6386, 11.4496, 186.9483]
+lambda_xyz_lio: [50.0E+3, 50.0E+3, 186.9483]
 #lambda_xyz_vio: [39.7562, 40.4794, 308.7466]
 lambda_xyz_vio: [5.0, 5.0, 308.7466]
 
 epsilon_bad_vio: [10, 10, 0.5]
 epsilon_ok_vio: [0.0, 0.0, 0.5]
-epsilon_bad_lio: [30, 30, 0.5]
-epsilon_ok_lio: [8, 8, 0.5]
+epsilon_bad_lio: [30.0E+4, 30.0E+4, 0.5]
+epsilon_ok_lio: [8.0E+3, 8.0E+3, 0.5]
 
 kx: [10.6, 11]
 ky: [10.4, 11]
@@ -31,5 +31,5 @@ r_v_bad: [1.0E+8, 1.0E+8, 1.0E+5]
 dist_threshold: 10.0
 recovery: true
 debug: false
-debug_VIO: true
+debug_VIO: false
 debug_LIO: true
