@@ -2,7 +2,7 @@ clear
 close all
 clc
 
-bag = rosbag("revised_bag/test_100125_1455.bag");
+bag = rosbag("thesis/revised/prova13.bag");
 bSel = select(bag,'Topic','/aft_mapped_to_init');
 bSel1 = select(bag,'Topic','/uav1/hw_api/odometry');
 bSel2 = select(bag,'Topic','/AKF/odom');
@@ -96,10 +96,10 @@ l_m = double(num_m);
 f_m = double(den_m);
 eig_x_def = resample(eig_x,l_m,f_m);
 eig_y_def = resample(eig_y,l_m,f_m);
-th_x_sup = (10.6386+14)*ones(size(eig_x_def,1));
-th_x_inf = (10.6386+6)*ones(size(eig_x_def,1));
-th_y_sup = (11.4496+12)*ones(size(eig_y_def,1));
-th_y_inf = (11.4496+0)*ones(size(eig_y_def,1));
+th_x_sup = (10.6386+30)*ones(size(eig_x_def,1));
+th_x_inf = (10.6386+10)*ones(size(eig_x_def,1));
+th_y_sup = (11.4496+30)*ones(size(eig_y_def,1));
+th_y_inf = (11.4496+10)*ones(size(eig_y_def,1));
 % n_points_def = resample(n_points,l_m,f_m);
 
 
@@ -127,119 +127,94 @@ th_y_inf = (11.4496+0)*ones(size(eig_y_def,1));
 % set(gca, 'TickLabelInterpreter', 'latex');
 
 %Plot x-y
-figure('Renderer', 'painters', 'Position', [10 10 900 600])
-
-plot(x_lio_def,y_lio_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
+% figure('Renderer', 'painters', 'Position', [10 10 900 600])
+figure('Units', 'inches', 'Position', [0, 0, 7.16, 2.5]);
+plot(x_lio_def,y_lio_def,'Color','[0.402,0.402,0.402]',LineWidth=2);
 hold on
-
-plot(x_akf_def,y_akf_def,'Color','[0.07,1.0,0.07]',LineWidth=2);
-plot(x_gt_def,y_gt_def,'Color','[1.0,0.0,0.07]',LineWidth=2);
+plot(x_gt_def,y_gt_def,'Color','[0.602,0.0,0.0]',LineWidth=2);
+plot(x_akf_def,y_akf_def,'Color','[0.0,0.602,0.0]',LineWidth=2);
 grid on
-xlabel('$x$ $[m]$','fontsize',18,'interpreter','latex')
-ylabel('$y$ $[m]$','fontsize',18, 'interpreter','latex')
-xlim([-10 80]);
-ylim([-10 60]);
-title('x-y plane trajectory', 'Interpreter', 'latex', 'FontSize', 20);
-set(gca, 'TickLabelInterpreter', 'latex');
+xlabel('$x$ $[m]$','fontsize',9,'interpreter','latex')
+ylabel('$y$ $[m]$','fontsize',9, 'interpreter','latex')
+xlim([-60 30]);
+ylim([-20 80]);
+% title('x-y plane trajectory', 'Interpreter', 'latex', 'FontSize', 20);
+legend({'LIO', 'VIO', 'AKF'}, 'NumColumns',3,'FontSize',9,'FontWeight','normal','Interpreter','latex',...
+    'Location','best', 'Box','on');
+% set(gca, 'TickLabelInterpreter', 'latex');
+set(gca, 'TickLabelInterpreter', 'latex', 'FontSize', 9);
+print('plot_ieee_xy', '-dpdf', '-r300');
 
-% th_y_sup_red = th_y_sup(400:800,1);
-% th_y_inf_red = th_y_inf(400:800,1);
-% state_y_red = state_y_def(400:800,1)/25;
+
+
+% % figure('Renderer', 'painters', 'Position', [10 10 900 600])
+% figure('Units', 'inches', 'Position', [0, 0, 7.16, 2.5]);
+% % set(gca, 'LooseInset', max(get(gca, 'TightInset'), 0.02));
+% subplot(2,2,1)
+% plot(x_lio_def,'Color','[0.402,0.402,0.402]',LineWidth=2);
+% hold on
+% plot(x_gt_def,'Color','[0.602,0.0,0.0]',LineWidth=2);
+% plot(x_akf_def,'Color','[0.0,0.602,0.0]',LineWidth=2);
+% ylabel('$x_p$ $[m]$','fontsize',10, 'interpreter','latex')
+% ylim([-60 50]);
+% grid on
+% xlim([0 700]);
+% ax = gca;
+% ax.XTick = 0:100:700;
+% ax.XTickLabel = {'0', '10', '20', '30', '40', '50', '60', '70'};
+% set(gca, 'TickLabelInterpreter', 'latex', 'FontSize', 9);
+% legend({'LIO', 'VIO', 'AKF'}, 'NumColumns',3,'FontSize',7,'FontWeight','normal','Interpreter','latex',...
+%     'Location','best', 'Box','on');
+% subplot(2,2,3)
+% plot(eig_x_def,'Color','[0.402,0.402,0.402]',LineWidth=2);
+% ylim([0 100]);
+% xlim([0 700]);
+% hold on
+% grid on
+% plot(th_x_sup(1:end,1),'Color','[0.0,0.0,0.602]',LineWidth=1)
+% plot(th_x_inf(1:end,1),'Color','[0.602,0.0,0.0]',LineWidth=1)
+% xlabel('$t$ $[s]$','fontsize',10,'interpreter','latex')
+% ax = gca;
+% ax.XTick = 0:100:700;
+% ax.XTickLabel = {'0', '10', '20', '30', '40', '50', '60', '70'};
+% set(gca, 'TickLabelInterpreter', 'latex', 'FontSize', 9);
+% legend({'$eig_x$', '$thr_{sup}$', '$thr_{inf}$'}, 'NumColumns',3,'FontSize',7,'FontWeight','normal','Interpreter','latex',...
+%     'Location','best', 'Box','on');
+% set(gca, 'TickLabelInterpreter', 'latex');
 % 
-% t1 = linspace(0,401,401);
-
-
-% figure('Renderer', 'painters', 'Position', [10 10 900 600])
-% title('Estimated trajectory', 'Interpreter', 'latex', 'FontSize', 20);
-% subplot(4,2,[1 2])
-% plot(x_lio_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
+% subplot(2,2,2)
+% plot(y_lio_def,'Color','[0.402,0.402,0.402]',LineWidth=2);
 % hold on
-% plot(x_gt_def,'Color','[1.0,0.0,0.07]',LineWidth=2);
-% plot(x_akf_def,'Color','[0.07,1.0,0.07]',LineWidth=2);
-% xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
-% ylabel('$x$ $[m]$','fontsize',18, 'interpreter','latex')
-% ylim([-30 60]);
+% plot(y_gt_def,'Color','[0.602,0.0,0.0]',LineWidth=2);
+% plot(y_akf_def,'Color','[0.0,0.602,0.0]',LineWidth=2);
+% ylabel('$y_p$ $[m]$','fontsize',10, 'interpreter','latex')
+% ylim([-20 80]);
 % grid on
-% subplot(4,2,[5 6])
-% plot(y_lio_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
+% xlim([0 700]);
+% ax = gca;
+% ax.XTick = 0:100:700;
+% ax.XTickLabel = {'0', '10', '20', '30', '40', '50', '60', '70'};
+% set(gca, 'TickLabelInterpreter', 'latex', 'FontSize', 9);
+% legend({'LIO', 'VIO', 'AKF'}, 'NumColumns',3,'FontSize',7,'FontWeight','normal','Interpreter','latex',...
+%     'Location','best', 'Box','on');
+% set(gca, 'TickLabelInterpreter', 'latex');
+% subplot(2,2,4)
+% plot(eig_y_def,'Color','[0.402,0.402,0.402]',LineWidth=2);
+% ylim([0 100]);
+% xlim([0 700]);
 % hold on
-% plot(y_gt_def,'Color','[1.0,0.0,0.07]',LineWidth=2);
-% plot(y_akf_def,'Color','[0.07,1.0,0.07]',LineWidth=2);
-% xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
-% ylabel('$y$ $[m]$','fontsize',18, 'interpreter','latex')
-% ylim([-30 40]);
 % grid on
-% subplot(4,2,[3 4])
-% plot(eig_x_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-% grid on
-% hold on
-% plot(th_x_sup,'--k',LineWidth=1)
-% plot(th_x_inf,'--k',LineWidth=1)
-% plot(state_x_def, 'r', LineWidth=1);
-% subplot(4,2,[7 8])
-% plot(eig_y_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-% grid on
-% hold on
-% plot(th_y_sup,'--k',LineWidth=1)
-% plot(th_y_inf,'--k',LineWidth=1)
-% plot(state_y_def, 'r', LineWidth=1);
-
-figure('Renderer', 'painters', 'Position', [10 10 900 600])
-title('Estimated trajectory', 'Interpreter', 'latex', 'FontSize', 20);
-subplot(2,2,1)
-plot(x_lio_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-hold on
-plot(x_gt_def,'Color','[1.0,0.0,0.07]',LineWidth=2);
-plot(x_akf_def,'Color','[0.07,1.0,0.07]',LineWidth=2);
-% plot(y_gt_def,'Color','[1.0,0.0,0.07]',LineWidth=2);
-% plot(y_akf_def,'Color','[0.07,1.0,0.07]',LineWidth=2);
-% plot(y_lio_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-% xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
-ylabel('$x_p$ $[m]$','fontsize',18, 'interpreter','latex')
-title('x trajectory', 'Interpreter', 'latex', 'FontSize', 20);
-ylim([-30 60]);
-grid on
-set(gca, 'TickLabelInterpreter', 'latex');
-subplot(2,2,3)
-plot(eig_x_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-hold on
-grid on
-plot(th_x_sup(1:end,1),LineWidth=1)
-plot(th_x_inf(1:end,1),LineWidth=1)
-plot(state_x_def, 'r', LineWidth=1);
-title('x eigenvalue and state of the filter', 'Interpreter', 'latex', 'FontSize', 20);
-xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
-set(gca, 'TickLabelInterpreter', 'latex');
-% plot(eig_y_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-% plot(th_y_sup,'--k',LineWidth=1)
-% plot(th_y_inf,'--k',LineWidth=1)
-
-% figure('Renderer', 'painters', 'Position', [10 10 900 600])
-% title('Estimated trajectory', 'Interpreter', 'latex', 'FontSize', 20);
-subplot(2,2,2)
-plot(y_lio_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-hold on
-plot(y_gt_def,'Color','[1.0,0.0,0.07]',LineWidth=2);
-plot(y_akf_def,'Color','[0.07,1.0,0.07]',LineWidth=2);
-% plot(y_gt_def,'Color','[1.0,0.0,0.07]',LineWidth=2);
-% plot(y_akf_def,'Color','[0.07,1.0,0.07]',LineWidth=2);
-% plot(y_lio_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-% xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
-ylabel('$y_p$ $[m]$','fontsize',18, 'interpreter','latex')
-title('y trajectory', 'Interpreter', 'latex', 'FontSize', 20);
-ylim([-30 60]);
-grid on
-set(gca, 'TickLabelInterpreter', 'latex');
-subplot(2,2,4)
-plot(eig_y_def,'Color','[0.07,0.62,1.00]',LineWidth=2);
-hold on
-grid on
-plot(th_y_sup(1:end,1),LineWidth=1)
-plot(th_y_inf(1:end,1),LineWidth=1)
-plot(state_y_def, 'r', LineWidth=1);
-title('y eigenvalue and state of the filter', 'Interpreter', 'latex', 'FontSize', 20);
-xlabel('$t$ $[s]$','fontsize',18,'interpreter','latex')
-set(gca, 'TickLabelInterpreter', 'latex');
+% plot(th_y_sup(1:end,1),'Color','[0.0,0.0,0.602]',LineWidth=1)
+% plot(th_y_inf(1:end,1),'Color','[0.602,0.0,0.0]',LineWidth=1)
+% xlabel('$t$ $[s]$','fontsize',10,'interpreter','latex')
+% ax = gca;
+% ax.XTick = 0:100:700;
+% ax.XTickLabel = {'0', '10', '20', '30', '40', '50', '60', '70'};
+% set(gca, 'TickLabelInterpreter', 'latex', 'FontSize', 9);
+% legend({'$eig_x$', '$thr_{sup}$', '$thr_{inf}$'}, 'NumColumns',3,'FontSize',7,'FontWeight','normal','Interpreter','latex',...
+%     'Location','best', 'Box','on');
+% set(gca, 'TickLabelInterpreter', 'latex');
+% print('plot_ieee_xy', '-dpdf', '-r300'); 
 
 
 %Plot x and y separatelyy

@@ -1,7 +1,7 @@
 
 close all
 
-bag = rosbag("gazebo_dataset/thesis/forest_to_of5.bag");
+bag = rosbag("gazebo_dataset/thesis/revised/prova13.bag");
 bSel = select(bag,'Topic','/aft_mapped_to_init');
 bSel1 = select(bag,'Topic','/uav1/hw_api/odometry');
 bref = select(bag, 'Topic','/uav1/control_manager/control_reference');
