@@ -37,6 +37,11 @@ class AKF_ros {
         /*Second source callback*/
         void VIO_cb( const nav_msgs::Odometry );
 
+        /*Functions for real experiments*/
+        void GT_cb( const nav_msgs::Odometry );
+        void AddElement(std::vector<double>& vector, double newEntry, int MaxDim);
+        std::vector<double> lowPassFilter(const std::vector<double>& signal, int window_size);
+
         void AKF_creation( Eigen::MatrixXd& A, Eigen::MatrixXd& B, Eigen::MatrixXd& H_l, Eigen::MatrixXd& H_v,
         Eigen::MatrixXd& Q, Eigen::MatrixXd& R_l, Eigen::MatrixXd& R_v );
         void fusion_loop();
@@ -58,10 +63,12 @@ class AKF_ros {
         ros::Subscriber _points_sub;
         ros::Subscriber _vio_odom_sub; 
         ros::Subscriber _eigV_sub;
+        ros::Subscriber _gt_pos_sub;
 
         ros::Publisher _robot_est;
         ros::Publisher _filter_state_x;
         ros::Publisher _filter_state_y;
+        ros::Publisher _debug_pub;
         
         Eigen::Vector3d _cmd_acc;
         Eigen::Vector3d _cmd_vel;
@@ -98,6 +105,24 @@ class AKF_ros {
         double _trace;
         bool _state_x;
         bool _state_y;
+        bool _state_z;
+
+        /*Ground Truth variables*/
+        Eigen::Vector3d _gt_pos;
+        Eigen::Vector4d _gt_quat;
+        Eigen::Vector3d _gt_vel;
+        Eigen::Vector3d _gt_com_acc;
+        Eigen::Vector3d _gt_com_acc_lpf;
+        double _Ts = 1/10.0;
+        double _k = 1.0;
+        Eigen::Vector3d _gt_vel_old;
+        std_msgs::Float32MultiArray _debug_vec;
+        std::vector<double> _signal_buffer_x;
+        std::vector<double> _signal_buffer_y;
+        std::vector<double> _signal_buffer_z;
+        std::vector<double> _filtered_acc_x;
+        std::vector<double> _filtered_acc_y;
+        std::vector<double> _filtered_acc_z;
         
 
         ros::Time _t1,_t2;
@@ -116,6 +141,7 @@ class AKF_ros {
         bool _takeoff_done;
         bool _dist_max;
         bool _killed;
+        bool _first_gt;
 
         /*Parameters*/
         int _states;
@@ -149,5 +175,6 @@ class AKF_ros {
         std::string _first_ekf_eig_topic_name;
         std::string _second_ekf_eig_topic_name;
         std::string _cmd_acc_topic_name;
+        std::string _ground_truth_topic_name;
 
 };
