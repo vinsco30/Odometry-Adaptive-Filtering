@@ -41,6 +41,7 @@ class AKF_ros {
         void GT_cb( const nav_msgs::Odometry );
         void AddElement(std::vector<double>& vector, double newEntry, int MaxDim);
         std::vector<double> lowPassFilter(const std::vector<double>& signal, int window_size);
+        bool monitor_eig( Eigen::Vector3d& eig_xyz, int thr );
 
         void AKF_creation( Eigen::MatrixXd& A, Eigen::MatrixXd& B, Eigen::MatrixXd& H_l, Eigen::MatrixXd& H_v,
         Eigen::MatrixXd& Q, Eigen::MatrixXd& R_l, Eigen::MatrixXd& R_v );
@@ -68,6 +69,7 @@ class AKF_ros {
         ros::Publisher _robot_est;
         ros::Publisher _filter_state_x;
         ros::Publisher _filter_state_y;
+        ros::Publisher _filter_state_z;
         ros::Publisher _debug_pub;
         
         Eigen::Vector3d _cmd_acc;
@@ -101,6 +103,9 @@ class AKF_ros {
 
         Eigen::Vector3d _eigL_xyz;
         Eigen::Vector3d _eigV_xyz;
+        Eigen::Vector3d _eigV_xyz_old;
+        int consecutiveUnchanged=0;
+        bool _eig_v_unchanged=false;;
         int _points;
         double _trace;
         bool _state_x;

@@ -14,8 +14,11 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   tf2_ros
+  cv_bridge
+  image_transport
+  sensor_msgs
 )
-
+# set(OpenCV_LIBS opencv_core opencv_imgproc opencv_calib3d opencv_video opencv_features2d opencv_ml opencv_highgui opencv_objdetect)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
@@ -24,6 +27,9 @@ include_directories(
 	${catkin_INCLUDE_DIRS} 
   ${EIGEN3_INCLUDE_DIR}
   include)
+
+# find_package( OpenCV REQUIRED )
+# include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -113,7 +119,7 @@ include_directories(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES AKF_pkg
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
+  # CATKIN_DEPENDS   geometry_msgs nav_msgs roscpp rospy std_msgs tf2_ros cv_bridge
 #  DEPENDS system_lib
 )
 
@@ -125,7 +131,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-  ${catkin_INCLUDE_DIRS}
+  # ${catkin_INCLUDE_DIRS}
+  # ${OpenCV_INCLUDE_DIRS}
+  # include
 )
 
 ## Declare a C++ library
@@ -134,6 +142,9 @@ include_directories(
 # )
 add_executable( akf_ros src/AKF_ros.cpp )
 target_link_libraries( akf_ros ${catkin_LIBRARIES} )
+
+add_executable( inject_blur src/inject_blur.cpp )
+target_link_libraries( inject_blur ${catkin_LIBRARIES} )
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
