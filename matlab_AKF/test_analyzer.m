@@ -1,21 +1,21 @@
 
-fileID = fopen('../../factors_saving_pkg/logs/factors.txt', 'r');
+fileID = fopen('../../factors_saving_pkg/logs/factors_vio.txt', 'r');
 
 if fileID == -1
     error('File cannot be opened. Check the path!');
 end
 
-formatSpec = '%f %f %f %f %f %f %d';
+formatSpec = '%f %f %f %f %f';
 
 dataArray = textscan(fileID, formatSpec);
 
 fclose(fileID);
 
-trace_bound = dataArray{1,3};
-eig_x_bound = dataArray{1,4};
-eig_y_bound = dataArray{1,5};
-eig_z_bound = dataArray{1,6};
-points_bound = dataArray{1,7};
+% trace_bound = dataArray{1,3};
+eig_x_bound = dataArray{1,3};
+eig_y_bound = dataArray{1,4};
+eig_z_bound = dataArray{1,5};
+% points_bound = dataArray{1,7};
 
 eig_plane = [eig_x_bound eig_y_bound];
 sum_y = 0;
@@ -37,5 +37,5 @@ avg_y = sum_y/cnty;
 
 avg_z = mean(eig_z_bound);
 
-avg_points = mean(points_bound);
-avg_trace = mean(trace_bound);
+% avg_points = mean(points_bound);
+% avg_trace = mean(trace_bound);

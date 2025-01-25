@@ -30,11 +30,18 @@ class AKF_ros {
         void LIO_cb( const nav_msgs::Odometry );
         void ctrl_acc_cb( const mrs_msgs::EstimatorInput );
         void ctrl_ref_cb( const nav_msgs::Odometry );
-        void eig_cb( const std_msgs::Float32MultiArray );
+        void eigL_cb( const std_msgs::Float32MultiArray );
+        void eigV_cb( const std_msgs::Float32MultiArray );
         void points_cb( const std_msgs::UInt16 );
         void trace_cb( const std_msgs::Float32 );
         /*Second source callback*/
-        void second_odom_cb( const nav_msgs::Odometry );
+        void VIO_cb( const nav_msgs::Odometry );
+
+        /*Functions for real experiments*/
+        void GT_cb( const nav_msgs::Odometry );
+        void AddElement(std::vector<double>& vector, double newEntry, int MaxDim);
+        std::vector<double> lowPassFilter(const std::vector<double>& signal, int window_size);
+        bool monitor_eig( Eigen::Vector3d& eig_xyz, int thr );
 
         void AKF_creation( Eigen::MatrixXd& A, Eigen::MatrixXd& B, Eigen::MatrixXd& H_l, Eigen::MatrixXd& H_v,
         Eigen::MatrixXd& Q, Eigen::MatrixXd& R_l, Eigen::MatrixXd& R_v );
@@ -52,14 +59,18 @@ class AKF_ros {
         ros::Subscriber _lio_odom_sub;
         ros::Subscriber _acc_ctrl_sub;
         ros::Subscriber _ref_ctrl_sub;
-        ros::Subscriber _eig_sub;
+        ros::Subscriber _eigL_sub;
         ros::Subscriber _trace_sub;
         ros::Subscriber _points_sub;
-        ros::Subscriber _second_source_sub; 
+        ros::Subscriber _vio_odom_sub; 
+        ros::Subscriber _eigV_sub;
+        ros::Subscriber _gt_pos_sub;
 
         ros::Publisher _robot_est;
         ros::Publisher _filter_state_x;
         ros::Publisher _filter_state_y;
+        ros::Publisher _filter_state_z;
+        ros::Publisher _debug_pub;
         
         Eigen::Vector3d _cmd_acc;
         Eigen::Vector3d _cmd_vel;
@@ -68,6 +79,12 @@ class AKF_ros {
         Eigen::Vector4d _uav_quat;
         Eigen::Vector3d _uav_vel;
         Eigen::Vector3d _uav_ang_vel;
+
+        /*Odom VIO*/
+        Eigen::Vector3d _uav_pos_vio;
+        Eigen::Vector4d _uav_quat_vio;
+        Eigen::Vector3d _uav_vel_vio;
+        Eigen::Vector3d _uav_ang_vel_vio;
 
         Eigen::Vector3d _pose_gt;
         Eigen::Vector3d _vel_gt;
@@ -78,57 +95,91 @@ class AKF_ros {
         Eigen::Matrix<double,6,1> _z_v;
 
         Eigen::Matrix<bool,3,1> _meas_l_ok;
-        Eigen::Matrix<bool,3,1> _q_change_ok;
+        Eigen::Matrix<bool,3,1> _q_lio_change_ok;
+        Eigen::Matrix<bool,3,1> _q_vio_change_ok;
         Eigen::Matrix<bool,3,1> _rq_change_bad;
 
-        Eigen::Vector3d _eig_xyz;
+        Eigen::Matrix<bool,3,1> _meas_v_ok;
+
+        Eigen::Vector3d _eigL_xyz;
+        Eigen::Vector3d _eigV_xyz;
+        Eigen::Vector3d _eigV_xyz_old;
+        int consecutiveUnchanged=0;
+        bool _eig_v_unchanged=false;;
         int _points;
         double _trace;
         bool _state_x;
         bool _state_y;
+        bool _state_z;
+
+        /*Ground Truth variables*/
+        Eigen::Vector3d _gt_pos;
+        Eigen::Vector4d _gt_quat;
+        Eigen::Vector3d _gt_vel;
+        Eigen::Vector3d _gt_com_acc;
+        Eigen::Vector3d _gt_com_acc_lpf;
+        double _Ts = 1/10.0;
+        double _k = 1.0;
+        Eigen::Vector3d _gt_vel_old;
+        std_msgs::Float32MultiArray _debug_vec;
+        std::vector<double> _signal_buffer_x;
+        std::vector<double> _signal_buffer_y;
+        std::vector<double> _signal_buffer_z;
+        std::vector<double> _filtered_acc_x;
+        std::vector<double> _filtered_acc_y;
+        std::vector<double> _filtered_acc_z;
         
 
         ros::Time _t1,_t2;
 
         /*Flags*/
-        bool _eig_received;
+        bool _eigL_received;
+        bool _eigV_received;
         bool _lio_odom_msg_received;
         bool _ii_odom_msg_received;
         bool _trace_received;
         bool _points_received;
         bool _new_ctrl_acc;
         bool _first_meas;
+        bool _first_meas_vio;
         bool _init_kf;
         bool _takeoff_done;
         bool _dist_max;
         bool _killed;
+        bool _first_gt;
 
         /*Parameters*/
         int _states;
         int _inputs;
         double _tau;
         double _Dt;
-        double _lambda_x;
-        double _lambda_y;
-        double _lambda_z;
+        std::vector<double> _lambda_xyz_lio;
+        std::vector<double> _lambda_xyz_vio;
         std::vector<double> _kx;
         std::vector<double> _ky;
         std::vector<double> _kz;
-        std::vector<double> _epsilon_sup;
-        std::vector<double> _epsilon_inf;
+        std::vector<double> _epsilon_bad_lio;
+        std::vector<double> _epsilon_ok_lio;
+        std::vector<double> _epsilon_bad_vio;
+        std::vector<double> _epsilon_ok_vio;
         std::vector<double> _q_v_meas_l_ok;
         std::vector<double> _r_l_bad;
         std::vector<double> _q_l_meas_bad;
+        bool _debug_VIO;
+        bool _debug_LIO;
         bool _debug;
         double _dist_th;
         double _time_th;
         bool _do_reboot;
         std::string _node_name;
 
+
         /*Parameters for inputs*/
         std::string _first_odom_topic_name;
         std::string _second_odom_topic_name;
         std::string _first_ekf_eig_topic_name;
+        std::string _second_ekf_eig_topic_name;
         std::string _cmd_acc_topic_name;
+        std::string _ground_truth_topic_name;
 
 };
