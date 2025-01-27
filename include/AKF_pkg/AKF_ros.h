@@ -105,7 +105,8 @@ class AKF_ros {
         Eigen::Vector3d _eigV_xyz;
         Eigen::Vector3d _eigV_xyz_old;
         int consecutiveUnchanged=0;
-        bool _eig_v_unchanged=false;;
+        bool _eig_v_unchanged=false;
+        bool _can_switch_vio = true;
         int _points;
         double _trace;
         bool _state_x;

@@ -227,7 +227,7 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
     if( _takeoff_done ) {
     //x
     // std::cout<<_meas_l_ok[0]<<"\n";
-    if( !_meas_l_ok[0] && _eigL_xyz[0] > _lambda_xyz_lio[0]+_epsilon_bad_lio[0] || _eig_v_unchanged ) {
+    if( !_meas_l_ok[0] && _eigL_xyz[0] > _lambda_xyz_lio[0]+_epsilon_bad_lio[0] ) {
         if( _debug_LIO )
             ROS_WARN("Meas x LIO OK after");
         _meas_l_ok[0] = true;
@@ -235,14 +235,14 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         _rq_change_bad[0] = false;
         _state_x=0;
     }
-    else if( _meas_l_ok[0] && _eigL_xyz[0] < _lambda_xyz_lio[0]+_epsilon_ok_lio[0] ) {
+    else if( _meas_l_ok[0] && _eigL_xyz[0] < _lambda_xyz_lio[0]+_epsilon_ok_lio[0] && _can_switch_vio ) {
         _meas_l_ok[0] = false;
         if( _debug_LIO )
             ROS_ERROR("Meas x LIO BAD");
         _state_x = 30;
     }
     //y
-    if( !_meas_l_ok[1] && _eigL_xyz[1] > _lambda_xyz_lio[1]+_epsilon_bad_lio[1] || _eig_v_unchanged ) {
+    if( !_meas_l_ok[1] && _eigL_xyz[1] > _lambda_xyz_lio[1]+_epsilon_bad_lio[1] ) {
         if( _debug_LIO )
             ROS_WARN("Meas y OK LIO after");
         _meas_l_ok[1] = true;
@@ -250,19 +250,19 @@ void AKF_ros::LIO_cb( const nav_msgs::Odometry lio_msg ) {
         _rq_change_bad[1] = false;
         _state_y = 0;
     }
-    else if( _meas_l_ok[1] && _eigL_xyz[1] < _lambda_xyz_lio[1]+_epsilon_ok_lio[1] ) {
+    else if( _meas_l_ok[1] && _eigL_xyz[1] < _lambda_xyz_lio[1]+_epsilon_ok_lio[1] && _can_switch_vio ) {
         _meas_l_ok[1] = false;
         if( _debug_LIO )
             ROS_ERROR("Meas y LIO BAD");
         _state_y = 30;
     }
     //z
-    if( !_meas_l_ok[2] && _eigL_xyz[2] > _lambda_xyz_lio[2]+_epsilon_bad_lio[2] || _eig_v_unchanged ) {
+    if( !_meas_l_ok[2] && _eigL_xyz[2] > _lambda_xyz_lio[2]+_epsilon_bad_lio[2] ) {
         _meas_l_ok[2] = true;
         _q_lio_change_ok[2] = false;
         _rq_change_bad[2] = false;
     }
-    else if( _meas_l_ok[2] && _eigL_xyz[2] < _lambda_xyz_lio[2] ) {
+    else if( _meas_l_ok[2] && _eigL_xyz[2] < _lambda_xyz_lio[2] && _can_switch_vio ) {
         ROS_ERROR("Meas z LIO BAD");
         _meas_l_ok[2] = false;
         _state_z = 30;
@@ -366,8 +366,25 @@ void AKF_ros::eigV_cb( const std_msgs::Float32MultiArray eig_msg ) {
     else
         consecutiveUnchanged++;
     
-    if( consecutiveUnchanged >= 100 ) {
+    if( consecutiveUnchanged >= 100 && !_eig_v_unchanged ) {
+
         _eig_v_unchanged = true;
+        _can_switch_vio = false;
+        
+        _meas_l_ok[0] = true;
+        _q_lio_change_ok[0] = false;
+        _rq_change_bad[0] = false;
+        _state_x=0;
+
+        _meas_l_ok[1] = true;
+        _q_lio_change_ok[1] = false;
+        _rq_change_bad[1] = false;
+        _state_y=0;
+
+        _meas_l_ok[2] = true;
+        _q_lio_change_ok[2] = false;
+        _rq_change_bad[2] = false;
+        _state_z=0;
     }
     _eigV_xyz_old = _eigV_xyz;
 
@@ -549,7 +566,7 @@ void AKF_ros::fusion_loop() {
             x_p = A*x_u + B*u;
             P_p = A*P_u*A.transpose() + _Dt*Q;
 
-            if( !_meas_l_ok[0] && !_rq_change_bad[0] && !_eig_v_unchanged ){
+            if( !_meas_l_ok[0] && !_rq_change_bad[0] ){
 
                 R_l(0,0) = R_l(0,0)*_r_l_bad[0];
                 R_l(3,3) = R_l(3,3)*_r_l_bad[0];
@@ -562,11 +579,8 @@ void AKF_ros::fusion_loop() {
                 _rq_change_bad[0] = true;
 
             }
-            else if( _eig_v_unchanged ) {
-                ROS_WARN("NO switch! -- Not healthy VIO");
-            }
 
-            if( !_meas_l_ok[1] && !_rq_change_bad[1] && !_eig_v_unchanged ){
+            if( !_meas_l_ok[1] && !_rq_change_bad[1] ){
                 /*r_l y e vy*/
                 R_l(1,1) = R_l(1,1)*_r_l_bad[1];
                 R_l(4,4) = R_l(4,4)*_r_l_bad[1];
@@ -581,11 +595,8 @@ void AKF_ros::fusion_loop() {
                 _rq_change_bad[1] = true;
 
             }
-            else if( _eig_v_unchanged ) {
-                ROS_WARN("NO switch! -- Not healthy VIO");
-            }
 
-            if( !_meas_l_ok[2] && !_rq_change_bad[2] && !_eig_v_unchanged ){
+            if( !_meas_l_ok[2] && !_rq_change_bad[2] ){
                 /*r_l z e vz*/
                 R_l(2,2) = R_l(2,2)*_r_l_bad[2];
                 R_l(5,5) = R_l(5,5)*_r_l_bad[2];
@@ -599,9 +610,6 @@ void AKF_ros::fusion_loop() {
                     ROS_WARN("Update cov for LIO Z");
                 _rq_change_bad[2] = true;
 
-            }
-            else if( _eig_v_unchanged ) {
-                ROS_WARN("NO switch! -- Not healthy VIO");
             }
 
             //--Correct
