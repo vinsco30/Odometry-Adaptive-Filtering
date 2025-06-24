@@ -1,5 +1,5 @@
 # Odometry Adaptive Fusion
-
+ROS packages implementing a Kalman Filter (KF) with adaptive covariance made for fusing several heterogeneous source of odometry checking the quality using a degeneracy factor and driving the fusion with an hysteresis-based scheme.
 
 ## Parameters
 To set-up the hysteresis based scheme for adaptive filter you need to set the following parameters:
