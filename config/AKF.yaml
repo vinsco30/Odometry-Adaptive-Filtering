@@ -1,8 +1,10 @@
 first_odom_topic_name: /aft_mapped_to_init
 # second_odom_topic_name: /uav1/hw_api/odometry
 second_odom_topic_name: /uav1/vins_republisher/odom
+third_odom_topic_name: /new_uav1/ov_msckf/odomimu
 first_ekf_eig_topic_name: /point_lio/eig
 second_ekf_eig_topic_name: /uav1/ov_msckf/eig
+third_ekf_eig_topic_name: /new_uav1/ov_msckf/eig
 cmd_acc_topic_name: /uav1/control_manager/estimator_input
 
 num_states: 21

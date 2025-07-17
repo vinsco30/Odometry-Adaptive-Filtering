@@ -32,16 +32,19 @@ class AKF_ros {
         void ctrl_ref_cb( const nav_msgs::Odometry );
         void eigL_cb( const std_msgs::Float32MultiArray );
         void eigV_cb( const std_msgs::Float32MultiArray );
+        void eigV2_cb( const std_msgs::Float32MultiArray );
         void points_cb( const std_msgs::UInt16 );
         void trace_cb( const std_msgs::Float32 );
         /*Second source callback*/
         void VIO_cb( const nav_msgs::Odometry );
+        void VIO2_cb( const nav_msgs::Odometry );
 
         void AKF_creation( Eigen::MatrixXd& A, Eigen::MatrixXd& B, Eigen::MatrixXd& H_l, Eigen::MatrixXd& H_v,
         Eigen::MatrixXd& Q, Eigen::MatrixXd& R_l, Eigen::MatrixXd& R_v );
         void fusion_loop();
         void fusion_loop_1d();
         void fusion_loop_2d();
+        void fusion_loop_gen();
         void monitor_LIO();
 
         void run();
@@ -56,8 +59,10 @@ class AKF_ros {
         ros::Subscriber _eigL_sub;
         ros::Subscriber _trace_sub;
         ros::Subscriber _points_sub;
-        ros::Subscriber _vio_odom_sub; 
+        ros::Subscriber _vio_odom_sub;
+        ros::Subscriber _vio2_odom_sub; 
         ros::Subscriber _eigV_sub;
+        ros::Subscriber _eigV2_sub;
 
         ros::Publisher _robot_est;
         ros::Publisher _filter_state_x;
@@ -71,29 +76,41 @@ class AKF_ros {
         Eigen::Vector3d _uav_vel;
         Eigen::Vector3d _uav_ang_vel;
 
-        /*Odom VIO*/
+        /*Odom VIO1*/
         Eigen::Vector3d _uav_pos_vio;
         Eigen::Vector4d _uav_quat_vio;
         Eigen::Vector3d _uav_vel_vio;
         Eigen::Vector3d _uav_ang_vel_vio;
 
-        Eigen::Vector3d _pose_gt;
-        Eigen::Vector3d _vel_gt;
-        Eigen::Vector4d _quat_gt;
-        std::string _frame_gt;
+        /*Odom VIO2*/
+        Eigen::Vector3d _uav_pos_vio2;
+        Eigen::Vector4d _uav_quat_vio2;
+        Eigen::Vector3d _uav_vel_vio2;  
+        Eigen::Vector3d _uav_ang_vel_vio2;
+        std::string _frame_vio2;
+
+        /*Odom VIO*/
+        // Eigen::Vector3d _pose_gt;
+        // Eigen::Vector3d _vel_gt;
+        // Eigen::Vector4d _quat_gt;
+        std::string _frame_vio;
 
         Eigen::Matrix<double,6,1> _z_l;
         Eigen::Matrix<double,6,1> _z_v;
+        Eigen::Matrix<double,6,1> _z_v2;
 
         Eigen::Matrix<bool,3,1> _meas_l_ok;
         Eigen::Matrix<bool,3,1> _q_lio_change_ok;
         Eigen::Matrix<bool,3,1> _q_vio_change_ok;
+        Eigen::Matrix<bool,3,1> _q_vio2_change_ok;
         Eigen::Matrix<bool,3,1> _rq_change_bad;
 
         Eigen::Matrix<bool,3,1> _meas_v_ok;
+        Eigen::Matrix<bool,3,1> _meas_v2_ok;
 
         Eigen::Vector3d _eigL_xyz;
         Eigen::Vector3d _eigV_xyz;
+        Eigen::Vector3d _eigV2_xyz;
         int _points;
         double _trace;
         bool _state_x;
@@ -105,13 +122,16 @@ class AKF_ros {
         /*Flags*/
         bool _eigL_received;
         bool _eigV_received;
+        bool _eigV2_received;
         bool _lio_odom_msg_received;
         bool _ii_odom_msg_received;
+        bool _iii_odom_msg_received;
         bool _trace_received;
         bool _points_received;
         bool _new_ctrl_acc;
         bool _first_meas;
         bool _first_meas_vio;
+        bool _first_meas_vio2;
         bool _init_kf;
         bool _takeoff_done;
         bool _dist_max;
@@ -146,8 +166,10 @@ class AKF_ros {
         /*Parameters for inputs*/
         std::string _first_odom_topic_name;
         std::string _second_odom_topic_name;
+        std::string _third_odom_topic_name;
         std::string _first_ekf_eig_topic_name;
         std::string _second_ekf_eig_topic_name;
+        std::string _third_ekf_eig_topic_name;
         std::string _cmd_acc_topic_name;
 
 };

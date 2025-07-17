@@ -213,6 +213,87 @@ namespace sys_model{
         return Hv;
     }
 
+    inline MatrixXd build_A_gen( int n_odom, float a, float Dt ) {
+        const int dim = 6 + 4 * n_odom;
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(dim, dim);
+
+        Eigen::Matrix<double,6,6> A_dyn = Eigen::Matrix<double,6,6>::Zero();
+        A_dyn << 1.0, 0.0, Dt, 0, (Dt*Dt)/2, 0,
+        0, 1.0, 0, Dt, 0, (Dt*Dt)/2,
+        0, 0, 1.0, 0, Dt, 0,
+        0, 0, 0, 1.0, 0, Dt,
+        0, 0, 0, 0, a, 0,
+        0, 0, 0, 0, 0, a;
+
+        A.block<6,6>(0,0) = A_dyn;
+        A.block<12,12>(6,6) = Eigen::Matrix<double,12,12>::Identity();
+
+        return A;
+    }
+
+    inline MatrixXd build_B_gen( int n_odom, float a ) {
+        const int dim = 6 + 4 * n_odom;
+        Eigen::MatrixXd B = Eigen::MatrixXd::Zero(dim, 2);
+
+        B.block<2,2>(4,0) = (1-a)*Eigen::Matrix<double,2,2>::Identity();
+
+        return B;
+    }
+
+    inline MatrixXd build_Hl_gen( int n_odom ) {
+
+        Matrix<double, 4,6> H_fix = Matrix<double, 4,6>::Zero();
+        H_fix.block<2,2>(0,0) = Matrix<double, 2,2>::Identity();
+        H_fix.block<2,2>(2,2) = Matrix<double, 2,2>::Identity();
+
+        Matrix<double, 4,4> H_core = Matrix<double, 4,4>::Zero();
+        H_core.block<2,2>(0,0) = -Matrix<double, 2,2>::Identity();
+        H_core.block<2,2>(2,2) = -Matrix<double, 2,2>::Identity();
+
+        const int dim = 10 + 4 * (n_odom-1);
+        MatrixXd Hl = MatrixXd::Zero(4,dim);
+        Hl.block<4,6>(0,0) = H_fix;
+        Hl.block<4,4>(0,6) = H_core;
+
+        return Hl;
+    }
+
+    inline MatrixXd build_Hv1_gen( int n_odom ) {
+
+        Matrix<double, 4,6> H_fix = Matrix<double, 4,6>::Zero();
+        H_fix.block<2,2>(0,0) = Matrix<double, 2,2>::Identity();
+        H_fix.block<2,2>(2,2) = Matrix<double, 2,2>::Identity();
+
+        Matrix<double, 4,4> H_core = Matrix<double, 4,4>::Zero();
+        H_core.block<2,2>(0,0) = -Matrix<double, 2,2>::Identity();
+        H_core.block<2,2>(2,2) = -Matrix<double, 2,2>::Identity();
+
+        const int dim = 10 + 4 * (n_odom-1);
+        MatrixXd Hv1 = MatrixXd::Zero(4,dim);
+        Hv1.block<4,6>(0,0) = H_fix;
+        Hv1.block<4,4>(0,10) = H_core;
+
+        return Hv1;
+    }
+
+    inline MatrixXd build_Hv2_gen( int n_odom ) {
+
+        Matrix<double, 4,6> H_fix = Matrix<double, 4,6>::Zero();
+        H_fix.block<2,2>(0,0) = Matrix<double, 2,2>::Identity();
+        H_fix.block<2,2>(2,2) = Matrix<double, 2,2>::Identity();
+
+        Matrix<double, 4,4> H_core = Matrix<double, 4,4>::Zero();
+        H_core.block<2,2>(0,0) = -Matrix<double, 2,2>::Identity();
+        H_core.block<2,2>(2,2) = -Matrix<double, 2,2>::Identity();
+
+        const int dim = 10 + 4 * (n_odom-1);
+        MatrixXd Hv2 = MatrixXd::Zero(4,dim);
+        Hv2.block<4,6>(0,0) = H_fix;
+        Hv2.block<4,4>(0,14) = H_core;
+
+        return Hv2;
+    }
+
 
 }
 
