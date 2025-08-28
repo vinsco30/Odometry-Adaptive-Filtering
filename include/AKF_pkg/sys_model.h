@@ -226,7 +226,7 @@ namespace sys_model{
         0, 0, 0, 0, 0, a;
 
         A.block<6,6>(0,0) = A_dyn;
-        A.block<12,12>(6,6) = Eigen::Matrix<double,12,12>::Identity();
+        A.block<12,12>(6,6) = Eigen::MatrixXd::Identity(dim,dim);
 
         return A;
     }

@@ -868,6 +868,7 @@ void AKF_ros::fusion_loop_gen() {
         }
         u << _cmd_acc[0], _cmd_acc[1];
 
+        /*Initialization with Livox as primary source -- TODO: modify it for fusion*/
         if( _takeoff_done ) {
             /*LIDAR odometry check X-direction*/
             if( _meas_l_ok[0] && !_q_lio_change_ok[0] ) {
@@ -879,11 +880,13 @@ void AKF_ros::fusion_loop_gen() {
                 else {
                     if( _debug_LIO )
                         ROS_WARN("I go back to the oldest covariances for X LIO.");
-                    Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0];
-                    Q(14,14) = Q(14,14)*_q_v_meas_l_ok[0]; 
-                    R_l(0,0) = R_l(0,0)*1/_r_l_bad[0];
+                    Q(10,10) = Q(10,10)*_q_v_meas_l_ok[0];//Aumento la covarianza dello stato della vio1
+                    Q(12,12) = Q(12,12)*_q_v_meas_l_ok[0]; 
+                    Q(14,14) = Q(14,14)*_q_v_meas_l_ok[0];//Aumento la covarianza dello stato della vio2
+                    Q(16,16) = Q(16,16)*_q_v_meas_l_ok[0];
+                    R_l(0,0) = R_l(0,0)*1/_r_l_bad[0];//Diminuisco la covarianza della misura del LIO
                     R_l(2,2) = R_l(2,2)*1/_r_l_bad[0];
-                    Q(6,6) = Q(6,6)*1/_q_l_meas_bad[0];
+                    Q(6,6) = Q(6,6)*1/_q_l_meas_bad[0];//Diminuisco la covarianza dello stato del LIO
                     Q(8,8) = Q(8,8)*1/_q_l_meas_bad[0];
                 }
 
@@ -892,6 +895,160 @@ void AKF_ros::fusion_loop_gen() {
                     ROS_WARN("Good X LIO meas. Update offset VIO");
             }
         }
+        if( _meas_l_ok[1] && !_q_lio_change_ok[1] ) {
+            if( if_first_update_y ) {
+                Q(11,11) = Q(11,11)*_q_v_meas_l_ok[1];
+                Q(13,13) = Q(13,13)*_q_v_meas_l_ok[1];
+                if_first_update_y = false;
+
+            }
+            else {
+                if( _debug_LIO )
+                    ROS_WARN("I go back to the oldest covariances for X.");
+                Q(11,11) = Q(11,11)*_q_v_meas_l_ok[1];//Aumento la covarianza dello stato della vio1
+                Q(13,13) = Q(13,13)*_q_v_meas_l_ok[1];
+                Q(15,15) = Q(15,15)*_q_v_meas_l_ok[1];//Aumento la covarianza dello stato della vio2
+                Q(17,17) = Q(17,17)*_q_v_meas_l_ok[1];
+                R_l(1,1) = R_l(1,1)*1/_r_l_bad[1];//Diminuisco la covarianza della misura della LIO
+                R_l(3,3) = R_l(3,3)*1/_r_l_bad[1];
+                Q(7,7) = Q(7,7)*1/_q_l_meas_bad[1];//Diminuisco la covarianza dello stato della LIO
+                Q(9,9) = Q(9,9)*1/_q_l_meas_bad[1];
+            }
+
+            _q_lio_change_ok[1] = true;
+            if( _debug_LIO )    
+                ROS_WARN("Good Y LIO meas. Update offset VIO");
+        }
+
+        /*State prediction*/
+        x_p = A*x_u + B*u;
+        P_p = A*P_u*A.transpose() + _Dt*Q;
+
+        /*Consistency check*/
+        //X-direction LIO
+        if( !_meas_l_ok[0] && !_rq_change_bad[0]){
+            /*Check if the source 2 is good and then fuse it*/
+            if( _meas_v_ok[0] ) {
+                R_l(0,0) = R_l(0,0)*_r_l_bad[0];
+                R_l(2,2) = R_l(2,2)*_r_l_bad[0];
+                Q(6,6) = Q(6,6)*_q_l_meas_bad[0];
+                Q(8,8) = Q(8,8)*_q_l_meas_bad[0];
+                Q(10,10) = Q(10,10)*1/_q_v_meas_l_ok[0];
+                Q(12,12) = Q(12,12)*1/_q_v_meas_l_ok[0];
+                if( _debug_LIO )
+                    ROS_WARN("Update cov for LIO X");
+                _rq_change_bad[0] = true;
+            }
+            else {
+                ROS_WARN("VIO 1 X estimation not good enough --- Avoid using it");
+            }
+            /*Check if the source 3 is good and then fuse it*/
+            if( _meas_v2_ok[0] ) {
+                R_l(0,0) = R_l(0,0)*_r_l_bad[0];
+                R_l(2,2) = R_l(2,2)*_r_l_bad[0];
+                Q(6,6) = Q(6,6)*_q_l_meas_bad[0];
+                Q(8,8) = Q(8,8)*_q_l_meas_bad[0];
+                Q(14,14) = Q(14,14)*1/_q_v_meas_l_ok[0];
+                Q(16,16) = Q(16,16)*1/_q_v_meas_l_ok[0];
+                if( _debug_LIO )
+                    ROS_WARN("Update cov for LIO X");
+                _rq_change_bad[0] = true;
+            }
+            else {
+                ROS_WARN("VIO 2 X estimation not good enough --- Avoid using it");
+            }
+        }
+        //Y-direction LIO
+        if( !_meas_l_ok[1] && !_rq_change_bad[1]){
+            if( _meas_v_ok[1] ) {
+                R_l(1,1) = R_l(1,1)*_r_l_bad[1];
+                R_l(3,3) = R_l(3,3)*_r_l_bad[1];
+                Q(7,7) = Q(7,7)*_q_l_meas_bad[1];
+                Q(9,9) = Q(9,9)*_q_l_meas_bad[1];
+                Q(11,11) = Q(11,11)*1/_q_v_meas_l_ok[1];
+                Q(13,13) = Q(13,13)*1/_q_v_meas_l_ok[1];
+                if( _debug_LIO )
+                    ROS_WARN("Update cov for LIO Y");
+                _rq_change_bad[1] = true;
+            }
+            else{
+                ROS_WARN("VIO 1 Y estimation not good enough --- Avoid using it");
+            }
+            if( _meas_v2_ok[1] ) {
+                R_l(1,1) = R_l(1,1)*_r_l_bad[1];
+                R_l(3,3) = R_l(3,3)*_r_l_bad[1];
+                Q(7,7) = Q(7,7)*_q_l_meas_bad[1];
+                Q(9,9) = Q(9,9)*_q_l_meas_bad[1];
+                Q(15,15) = Q(15,15)*1/_q_v_meas_l_ok[1];
+                Q(17,17) = Q(17,17)*1/_q_v_meas_l_ok[1];
+                if( _debug_LIO )
+                    ROS_WARN("Update cov for LIO Y");
+                _rq_change_bad[1] = true;
+            }
+            else{
+                ROS_WARN("VIO 2 Y estimation not good enough --- Avoid using it");
+            }
+        }
+        /*Update measurement vectors*/
+        z_l_gen << _z_l.block<2,1>(0,0), _z_l.block<2,1>(3,0);
+        z_v_gen << _z_v.block<2,1>(0,0), _z_v.block<2,1>(3,0);
+        z_v2_gen << _z_v2.block<2,1>(0,0), _z_v2.block<2,1>(3,0);
+
+        /*Update of the KF according to the measurements*/
+        if(  _lio_odom_msg_received ) {
+            _eigL_received=false;
+            _lio_odom_msg_received=false;
+            y = z_l_gen - H_L*x_p;
+            K = P_p * H_L.transpose() * (H_L * P_p * H_L.transpose() + R_l).inverse();
+
+            x_u = x_p + K*y;
+            P_u = (Eigen::Matrix<double, 18,18>::Identity() - K * H_L) * P_p;
+            
+        }
+        if( _ii_odom_msg_received ) {
+            _ii_odom_msg_received = false;
+            y = z_v_gen - H_V*x_p;
+            K = P_p * H_V.transpose() * (H_V * P_p * H_V.transpose() + R_v).inverse();
+
+            x_u = x_p + K*y;
+            P_u = (Eigen::Matrix<double,18,18>::Identity() - K * H_V) * P_p;
+        }
+        if( _iii_odom_msg_received ) {
+            _iii_odom_msg_received = false;
+            y = z_v2_gen - H_V2*x_p;
+            K = P_p * H_V2.transpose() * (H_V2 * P_p * H_V2.transpose() + R_v2).inverse();
+
+            x_u = x_p + K*y;
+            P_u = (Eigen::Matrix<double,18,18>::Identity() - K * H_V2) * P_p;
+        }
+
+        odom_out_msg.header.stamp = ros::Time::now();
+        odom_out_msg.header.frame_id = "uav1/local_origin";
+        odom_out_msg.child_frame_id = "AKF_odom";
+        odom_out_msg.pose.pose.position.x = x_u[0];
+        odom_out_msg.pose.pose.position.y = x_u[1];
+        odom_out_msg.twist.twist.linear.x = x_u[2];
+        odom_out_msg.twist.twist.linear.y = x_u[3];
+        odom_out_msg.pose.pose.position.z = _uav_pos_vio[2];
+        odom_out_msg.pose.pose.orientation.w = _uav_quat[0];
+        odom_out_msg.pose.pose.orientation.x = _uav_quat[1];
+        odom_out_msg.pose.pose.orientation.y = _uav_quat[2];
+        odom_out_msg.pose.pose.orientation.z = _uav_quat[3];
+
+        state_x.data = _state_x;
+        state_y.data = _state_y;
+
+        _robot_est.publish(odom_out_msg);
+        _filter_state_x.publish(state_x);
+        _filter_state_y.publish(state_y);
+        if( _debug ) {
+            for(int i=0; i<6; i++) {
+                std::cout<<x_u(i)<<" ";
+            }
+            std::cout<<"\n";
+            
+        }
+        r.sleep();
     }
 
 }
