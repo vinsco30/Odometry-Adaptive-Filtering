@@ -856,6 +856,9 @@ void AKF_ros::fusion_loop_gen() {
     bool if_first_update_y = true;
     int cnt_x, cnt_y;
     bool bad_x, bad_y;
+    std_msgs::Bool state_x;
+    std_msgs::Bool state_y;
+    nav_msgs::Odometry odom_out_msg;
 
     while( ros::ok() ) {
 
